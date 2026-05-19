@@ -3,7 +3,7 @@ import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useWeek } from "@/lib/week-context";
 import { PLATFORMS, PLATFORM_LABEL, prevWeek, deltaPct, weeks, type Platform } from "@/lib/mock-data";
-import { fetchPlatformMetrics } from "@/lib/server/queries";
+import { fetchPlatformMetrics } from "@/lib/api/queries";
 import { formatINR, formatNum, formatPct, formatDelta, fmtDate } from "@/lib/format";
 import { ArrowDownRight, ArrowUpRight } from "lucide-react";
 import { cn } from "@/lib/utils";

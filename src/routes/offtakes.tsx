@@ -5,7 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useState, useMemo } from "react";
 import { brands, categories, skus, PLATFORMS, PLATFORM_LABEL, weeks, prevWeek, deltaPct, type Platform } from "@/lib/mock-data";
-import { fetchOfftakes } from "@/lib/server/queries";
+import { fetchOfftakes } from "@/lib/api/queries";
 import { useWeek } from "@/lib/week-context";
 import { formatINR, formatNum, formatDelta } from "@/lib/format";
 import { ArrowDownRight, ArrowUpRight } from "lucide-react";

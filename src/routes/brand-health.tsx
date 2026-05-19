@@ -5,7 +5,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useMemo, useState } from "react";
 import { brands, PLATFORMS, PLATFORM_LABEL, visibilityScore, listingScore, priceCompetitivenessScore, marketShareScore, overallBrandHealth, type Platform, type PriceRow } from "@/lib/mock-data";
-import { fetchOfftakes, fetchListings, fetchVisibility, fetchPrices, fetchFairShares, toPriceRows } from "@/lib/server/queries";
+import { fetchOfftakes, fetchListings, fetchVisibility, fetchPrices, fetchFairShares, toPriceRows } from "@/lib/api/queries";
 import { useWeek } from "@/lib/week-context";
 import { cn } from "@/lib/utils";
 

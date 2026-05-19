@@ -5,7 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useState } from "react";
 import { brands, brandKeywords, PLATFORMS, PLATFORM_LABEL, weeks, prevWeek } from "@/lib/mock-data";
-import { fetchVisibility } from "@/lib/server/queries";
+import { fetchVisibility } from "@/lib/api/queries";
 import { useWeek } from "@/lib/week-context";
 import { cn } from "@/lib/utils";
 import { Alert, AlertDescription } from "@/components/ui/alert";

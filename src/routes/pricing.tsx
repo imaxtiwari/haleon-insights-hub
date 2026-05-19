@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useState } from "react";
 import { skus, competitorSkus, brands, categories, PLATFORMS, PLATFORM_LABEL, weeks, prevWeek, deltaPct, type Platform } from "@/lib/mock-data";
-import { fetchPrices, type DbPriceRow } from "@/lib/server/queries";
+import { fetchPrices, type DbPriceRow } from "@/lib/api/queries";
 import { useWeek } from "@/lib/week-context";
 import { formatDelta, fmtDate } from "@/lib/format";
 import { ArrowDown, ArrowUp } from "lucide-react";

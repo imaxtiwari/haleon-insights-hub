@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useMemo, useState } from "react";
 import { brands, PLATFORMS, PLATFORM_LABEL, brandMarketShare, categoryGMV, type Platform } from "@/lib/mock-data";
-import { fetchOfftakes, fetchFairShares, updateFairShare } from "@/lib/server/queries";
+import { fetchOfftakes, fetchFairShares, updateFairShare } from "@/lib/api/queries";
 import { useWeek } from "@/lib/week-context";
 import { formatINR } from "@/lib/format";
 import { cn } from "@/lib/utils";

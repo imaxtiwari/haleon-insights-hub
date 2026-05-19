@@ -5,7 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { useState } from "react";
 import { brands, skus, PLATFORMS, PLATFORM_LABEL, prevWeek, type Platform, type ListingRow } from "@/lib/mock-data";
-import { fetchListings } from "@/lib/server/queries";
+import { fetchListings } from "@/lib/api/queries";
 import { useWeek } from "@/lib/week-context";
 import { ChevronDown, ChevronRight } from "lucide-react";
 
