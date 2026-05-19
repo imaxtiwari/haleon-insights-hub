@@ -41,7 +41,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
         <nav className="flex-1 p-2 space-y-0.5">
           {NAV.map((n) => {
-            const active = path === n.to || (n.to !== "/" && path.startsWith(n.to));
+            const active = path === n.to || path.startsWith(n.to + "/");
             return (
               <Link
                 key={n.to}
