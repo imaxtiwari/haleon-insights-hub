@@ -11,7 +11,7 @@ import { LineChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from "rec
 export const Route = createFileRoute("/snapshot")({ component: SnapshotPage });
 
 function getMetric(p: Platform, week: string) {
-  return platformMetrics.find((m) => m.platform === p && m.weekEnding === week)!;
+  return platformMetrics.find((m) => m.platform === p && m.weekEnding === week) ?? null;
 }
 
 function SnapshotPage() {
@@ -25,6 +25,7 @@ function SnapshotPage() {
         {PLATFORMS.map((p) => {
           const m = getMetric(p, week);
           const pm = prev ? getMetric(p, prev) : null;
+          if (!m) return null;
           const metrics = [
             { key: "GMV", v: formatINR(m.gmv), d: pm ? deltaPct(m.gmv, pm.gmv) : 0 },
             { key: "MAU", v: formatNum(m.mau), d: pm ? deltaPct(m.mau, pm.mau) : 0 },
@@ -63,6 +64,7 @@ function SnapshotPage() {
                   const row: Record<string, number | string> = { w: fmtDate(w).slice(0, 6) };
                   PLATFORMS.forEach((p) => {
                     const m = getMetric(p, w);
+                    if (!m) return;
                     row[p] = metric === "reach" ? +(m.reach * 100).toFixed(1) : (m as Record<string, unknown>)[metric] as number;
                   });
                   return row;
@@ -80,7 +82,7 @@ function SnapshotPage() {
           </Card>
         ))}
       </div>
-      <div className="mt-3 flex gap-4 text-xs text-muted-foreground">
+      <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-xs text-muted-foreground">
         {PLATFORMS.map((p, i) => (
           <div key={p} className="flex items-center gap-1.5">
             <span className="size-2 rounded-full" style={{ background: `var(--chart-${i + 1})` }} />

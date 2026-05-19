@@ -3,6 +3,7 @@ import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useMemo, useState } from "react";
 import { brands, PLATFORMS, PLATFORM_LABEL, brandMarketShare, categoryGMV, getFairShare, setFairShare, type Platform } from "@/lib/mock-data";
 import { useWeek } from "@/lib/week-context";
@@ -15,9 +16,10 @@ type Row = { brandId: string; brandName: string; platform: Platform; ms: number;
 
 function MarketSharePage() {
   const { week } = useWeek();
-  const [, setBump] = useState(0);
+  const [bump, setBump] = useState(0);
+  const [platform, setPlatform] = useState<Platform | "all">("all");
 
-  const rows: Row[] = useMemo(() => {
+  const allRows: Row[] = useMemo(() => {
     const out: Row[] = [];
     brands.forEach((b) => PLATFORMS.forEach((p) => {
       const ms = brandMarketShare(b.id, p, week);
@@ -27,13 +29,15 @@ function MarketSharePage() {
       out.push({ brandId: b.id, brandName: b.name, platform: p, ms, fs, gap: ms - fs, opp, catGmv: cat });
     }));
     return out.sort((a, b) => b.opp - a.opp);
-    // re-compute via bump dep below
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [week, /* bump trigger */ setBump]);
+  }, [week, bump]);
 
   const totalsPerPlatform = PLATFORMS.map((p) => ({
-    p, opp: rows.filter((r) => r.platform === p).reduce((a, r) => a + r.opp, 0),
+    p, opp: allRows.filter((r) => r.platform === p).reduce((a, r) => a + r.opp, 0),
   }));
+
+  const rows = platform === "all" ? allRows : allRows.filter((r) => r.platform === platform);
+  const showPlatformCol = platform === "all";
+  const filteredTotal = rows.reduce((a, r) => a + r.opp, 0);
 
   return (
     <div>
@@ -49,13 +53,30 @@ function MarketSharePage() {
           </Card>
         ))}
       </div>
+
+      <div className="flex gap-3 mb-3">
+        <Select value={platform} onValueChange={(v) => setPlatform(v as Platform | "all")}>
+          <SelectTrigger className="h-8 w-48 text-xs"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all" className="text-xs">All platforms</SelectItem>
+            {PLATFORMS.map((p) => <SelectItem key={p} value={p} className="text-xs">{PLATFORM_LABEL[p]}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {platform !== "all" && (
+        <p className="text-xs text-muted-foreground mb-2">
+          Showing {rows.length} brand{rows.length !== 1 ? "s" : ""} on {PLATFORM_LABEL[platform]} · total opportunity {formatINR(filteredTotal)}
+        </p>
+      )}
+
       <Card>
         <CardContent className="p-0">
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Brand</TableHead>
-                <TableHead>Platform</TableHead>
+                {showPlatformCol && <TableHead>Platform</TableHead>}
                 <TableHead className="text-right">Market Share %</TableHead>
                 <TableHead className="text-right">Fair Share %</TableHead>
                 <TableHead className="text-right">Gap (pp)</TableHead>
@@ -66,7 +87,7 @@ function MarketSharePage() {
               {rows.map((r) => (
                 <TableRow key={`${r.brandId}-${r.platform}`} className="h-10">
                   <TableCell className="font-medium">{r.brandName}</TableCell>
-                  <TableCell className="text-muted-foreground text-xs">{PLATFORM_LABEL[r.platform]}</TableCell>
+                  {showPlatformCol && <TableCell className="text-muted-foreground text-xs">{PLATFORM_LABEL[r.platform]}</TableCell>}
                   <TableCell className="text-right tabular-nums">{r.ms.toFixed(1)}%</TableCell>
                   <TableCell className="text-right">
                     <Input

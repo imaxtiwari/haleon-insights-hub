@@ -74,8 +74,8 @@ function ListingsPage() {
                   const c = rows.find((r) => r.skuId === id && r.platform === p);
                   const pr = prevRows.find((r) => r.skuId === id && r.platform === p);
                   if (c && pr) {
-                    if (c.status !== "listed" && pr.status === "listed") newlyUnlisted.push(skus.find((s) => s.id === id)!.name);
-                    if (c.status === "listed" && pr.status !== "listed") newlyRelisted.push(skus.find((s) => s.id === id)!.name);
+                    if (c.status !== "listed" && pr.status === "listed") { const n = skus.find((s) => s.id === id)?.name; if (n) newlyUnlisted.push(n); }
+                    if (c.status === "listed" && pr.status !== "listed") { const n = skus.find((s) => s.id === id)?.name; if (n) newlyRelisted.push(n); }
                   }
                 }));
                 return (

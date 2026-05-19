@@ -41,24 +41,58 @@ export const brands: Brand[] = [
 ];
 
 export const skus: SKU[] = [
+  // Sensodyne (Oral Care) — 7 SKUs
   { id: "sk-sen-1", brandId: "sensodyne", name: "Sensodyne Rapid Relief 75g", packSize: "75g", mrp: 220, ids: pIds("PE-SEN1", "TM-SEN1", "ZP-SEN1", "AM-SEN1") },
   { id: "sk-sen-2", brandId: "sensodyne", name: "Sensodyne Fresh Mint 70g", packSize: "70g", mrp: 165, ids: pIds("PE-SEN2", "TM-SEN2", "ZP-SEN2", "AM-SEN2") },
   { id: "sk-sen-3", brandId: "sensodyne", name: "Sensodyne Repair & Protect 70g", packSize: "70g", mrp: 240, ids: pIds("PE-SEN3", "TM-SEN3", "ZP-SEN3", "AM-SEN3") },
+  { id: "sk-sen-4", brandId: "sensodyne", name: "Sensodyne Original 70g", packSize: "70g", mrp: 155, ids: pIds("PE-SEN4", "TM-SEN4", "ZP-SEN4", "AM-SEN4") },
+  { id: "sk-sen-5", brandId: "sensodyne", name: "Sensodyne Whitening 70g", packSize: "70g", mrp: 180, ids: pIds("PE-SEN5", "TM-SEN5", "ZP-SEN5", "AM-SEN5") },
+  { id: "sk-sen-6", brandId: "sensodyne", name: "Sensodyne Sensitivity & Gum 75g", packSize: "75g", mrp: 230, ids: pIds("PE-SEN6", "TM-SEN6", "ZP-SEN6", "AM-SEN6") },
+  { id: "sk-sen-7", brandId: "sensodyne", name: "Sensodyne Deep Clean 70g", packSize: "70g", mrp: 175, ids: pIds("PE-SEN7", "TM-SEN7", "ZP-SEN7", "AM-SEN7") },
+
+  // Crocin (Pain Relief) — 6 SKUs
   { id: "sk-cro-1", brandId: "crocin", name: "Crocin Advance 500mg 15 tabs", packSize: "15 tabs", mrp: 40, ids: pIds("PE-CRO1", "TM-CRO1", "ZP-CRO1", "AM-CRO1") },
   { id: "sk-cro-2", brandId: "crocin", name: "Crocin Pain Relief 650mg 15 tabs", packSize: "15 tabs", mrp: 65, ids: pIds("PE-CRO2", "TM-CRO2", "ZP-CRO2", "AM-CRO2") },
   { id: "sk-cro-3", brandId: "crocin", name: "Crocin Cold & Flu Max 10 tabs", packSize: "10 tabs", mrp: 90, ids: pIds("PE-CRO3", "TM-CRO3", "ZP-CRO3", "AM-CRO3") },
+  { id: "sk-cro-4", brandId: "crocin", name: "Crocin Cold Max 10 tabs", packSize: "10 tabs", mrp: 85, ids: pIds("PE-CRO4", "TM-CRO4", "ZP-CRO4", "AM-CRO4") },
+  { id: "sk-cro-5", brandId: "crocin", name: "Crocin Quick Cool Strip 10 tabs", packSize: "10 tabs", mrp: 70, ids: pIds("PE-CRO5", "TM-CRO5", "ZP-CRO5", "AM-CRO5") },
+  { id: "sk-cro-6", brandId: "crocin", name: "Crocin 500mg 20 tabs", packSize: "20 tabs", mrp: 50, ids: pIds("PE-CRO6", "TM-CRO6", "ZP-CRO6", "AM-CRO6") },
+
+  // Panadol (Pain Relief) — 4 SKUs
   { id: "sk-pan-1", brandId: "panadol", name: "Panadol Extra 500mg 10 tabs", packSize: "10 tabs", mrp: 55, ids: pIds("PE-PAN1", "TM-PAN1", "ZP-PAN1", "AM-PAN1") },
   { id: "sk-pan-2", brandId: "panadol", name: "Panadol Cold + Flu All-in-One 10 tabs", packSize: "10 tabs", mrp: 95, ids: pIds("PE-PAN2", "TM-PAN2", "ZP-PAN2", "AM-PAN2") },
+  { id: "sk-pan-3", brandId: "panadol", name: "Panadol Advance 500mg 16 tabs", packSize: "16 tabs", mrp: 75, ids: pIds("PE-PAN3", "TM-PAN3", "ZP-PAN3", "AM-PAN3") },
+  { id: "sk-pan-4", brandId: "panadol", name: "Panadol Actifast 500mg 14 tabs", packSize: "14 tabs", mrp: 80, ids: pIds("PE-PAN4", "TM-PAN4", "ZP-PAN4", "AM-PAN4") },
+
+  // Voltaren (Pain Relief) — 5 SKUs
   { id: "sk-vol-1", brandId: "voltaren", name: "Voltaren Emulgel 50g", packSize: "50g", mrp: 280, ids: pIds("PE-VOL1", "TM-VOL1", "ZP-VOL1", "AM-VOL1") },
-  { id: "sk-vol-2", brandId: "voltaren", name: "Voltaren Plus 20 tabs", packSize: "20 tabs", mrp: 140, ids: pIds("PE-VOL2", "TM-VOL2", "ZP-VOL2", "AM-VOL2") },
+  { id: "sk-vol-2", brandId: "voltaren", name: "Voltaren Emulgel 30g", packSize: "30g", mrp: 195, ids: pIds("PE-VOL2", "TM-VOL2", "ZP-VOL2", "AM-VOL2") },
+  { id: "sk-vol-3", brandId: "voltaren", name: "Voltaren Emulgel 100g", packSize: "100g", mrp: 520, ids: pIds("PE-VOL3", "TM-VOL3", "ZP-VOL3", "AM-VOL3") },
+  { id: "sk-vol-4", brandId: "voltaren", name: "Voltaren Plus 20 tabs", packSize: "20 tabs", mrp: 140, ids: pIds("PE-VOL4", "TM-VOL4", "ZP-VOL4", "AM-VOL4") },
+  { id: "sk-vol-5", brandId: "voltaren", name: "Voltaren Rapid 25mg 10 tabs", packSize: "10 tabs", mrp: 110, ids: pIds("PE-VOL5", "TM-VOL5", "ZP-VOL5", "AM-VOL5") },
+
+  // Centrum (Multivitamins) — 6 SKUs
   { id: "sk-cen-1", brandId: "centrum", name: "Centrum Adults 30 tabs", packSize: "30 tabs", mrp: 420, ids: pIds("PE-CEN1", "TM-CEN1", "ZP-CEN1", "AM-CEN1") },
   { id: "sk-cen-2", brandId: "centrum", name: "Centrum Women 30 tabs", packSize: "30 tabs", mrp: 440, ids: pIds("PE-CEN2", "TM-CEN2", "ZP-CEN2", "AM-CEN2") },
   { id: "sk-cen-3", brandId: "centrum", name: "Centrum Men 30 tabs", packSize: "30 tabs", mrp: 440, ids: pIds("PE-CEN3", "TM-CEN3", "ZP-CEN3", "AM-CEN3") },
+  { id: "sk-cen-4", brandId: "centrum", name: "Centrum Adults 50+ 30 tabs", packSize: "30 tabs", mrp: 460, ids: pIds("PE-CEN4", "TM-CEN4", "ZP-CEN4", "AM-CEN4") },
+  { id: "sk-cen-5", brandId: "centrum", name: "Centrum Kids Gummies 30 count", packSize: "30 count", mrp: 480, ids: pIds("PE-CEN5", "TM-CEN5", "ZP-CEN5", "AM-CEN5") },
+  { id: "sk-cen-6", brandId: "centrum", name: "Centrum Adults 60 tabs", packSize: "60 tabs", mrp: 780, ids: pIds("PE-CEN6", "TM-CEN6", "ZP-CEN6", "AM-CEN6") },
+
+  // Otrivin (Cold & Flu) — 5 SKUs
   { id: "sk-otr-1", brandId: "otrivin", name: "Otrivin Adult Nasal Spray 10ml", packSize: "10ml", mrp: 125, ids: pIds("PE-OTR1", "TM-OTR1", "ZP-OTR1", "AM-OTR1") },
   { id: "sk-otr-2", brandId: "otrivin", name: "Otrivin Plus 10ml", packSize: "10ml", mrp: 155, ids: pIds("PE-OTR2", "TM-OTR2", "ZP-OTR2", "AM-OTR2") },
-  { id: "sk-eno-1", brandId: "eno", name: "ENO Lemon 5g sachet ×30", packSize: "5g ×30", mrp: 150, ids: pIds("PE-ENO1", "TM-ENO1", "ZP-ENO1", "AM-ENO1") },
-  { id: "sk-eno-2", brandId: "eno", name: "ENO Orange 5g sachet ×30", packSize: "5g ×30", mrp: 150, ids: pIds("PE-ENO2", "TM-ENO2", "ZP-ENO2", "AM-ENO2") },
+  { id: "sk-otr-3", brandId: "otrivin", name: "Otrivin Baby Drops 10ml", packSize: "10ml", mrp: 110, ids: pIds("PE-OTR3", "TM-OTR3", "ZP-OTR3", "AM-OTR3") },
+  { id: "sk-otr-4", brandId: "otrivin", name: "Otrivin Saline Drops 10ml", packSize: "10ml", mrp: 95, ids: pIds("PE-OTR4", "TM-OTR4", "ZP-OTR4", "AM-OTR4") },
+  { id: "sk-otr-5", brandId: "otrivin", name: "Otrivin Menthol Plus 10ml", packSize: "10ml", mrp: 165, ids: pIds("PE-OTR5", "TM-OTR5", "ZP-OTR5", "AM-OTR5") },
+
+  // ENO (Antacids) — 6 SKUs
+  { id: "sk-eno-1", brandId: "eno", name: "ENO Lemon 5g sachet x30", packSize: "5g x30", mrp: 150, ids: pIds("PE-ENO1", "TM-ENO1", "ZP-ENO1", "AM-ENO1") },
+  { id: "sk-eno-2", brandId: "eno", name: "ENO Orange 5g sachet x30", packSize: "5g x30", mrp: 150, ids: pIds("PE-ENO2", "TM-ENO2", "ZP-ENO2", "AM-ENO2") },
   { id: "sk-eno-3", brandId: "eno", name: "ENO Regular 100g bottle", packSize: "100g", mrp: 110, ids: pIds("PE-ENO3", "TM-ENO3", "ZP-ENO3", "AM-ENO3") },
+  { id: "sk-eno-4", brandId: "eno", name: "ENO Cool Lemon 5g sachet x30", packSize: "5g x30", mrp: 155, ids: pIds("PE-ENO4", "TM-ENO4", "ZP-ENO4", "AM-ENO4") },
+  { id: "sk-eno-5", brandId: "eno", name: "ENO Lemon 100g bottle", packSize: "100g", mrp: 115, ids: pIds("PE-ENO5", "TM-ENO5", "ZP-ENO5", "AM-ENO5") },
+  { id: "sk-eno-6", brandId: "eno", name: "ENO Masala Lime 5g sachet x10", packSize: "5g x10", mrp: 55, ids: pIds("PE-ENO6", "TM-ENO6", "ZP-ENO6", "AM-ENO6") },
 ];
 
 function pIds(pe: string, tm: string, zp: string, am: string): Record<Platform, string | null> {
@@ -169,11 +203,11 @@ export const uploads: Upload[] = (() => {
 
 // --- Platform metrics ---
 export type PlatformMetricRow = { platform: Platform; weekEnding: string; gmv: number; mau: number; aov: number; reach: number };
-function platformBase(p: Platform) {
+function platformBase(p: Platform): { gmv: number; mau: number; aov: number; reach: number } {
   if (p === "pharmeasy") return { gmv: 18_00_00_000, mau: 280_000, aov: 520, reach: 0.28 };
   if (p === "tata_1mg") return { gmv: 16_00_00_000, mau: 250_000, aov: 500, reach: 0.26 };
   if (p === "zepto") return { gmv: 9_00_00_000, mau: 180_000, aov: 380, reach: 0.18 };
-  if (p === "amazon_pharmacy") return { gmv: 14_00_00_000, mau: 240_000, aov: 460, reach: 0.24 };
+  return { gmv: 14_00_00_000, mau: 240_000, aov: 460, reach: 0.24 };
 }
 export const platformMetrics: PlatformMetricRow[] = (() => {
   const out: PlatformMetricRow[] = [];

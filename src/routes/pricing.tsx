@@ -5,8 +5,9 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useState } from "react";
-import { skus, competitorSkus, prices, PLATFORMS, PLATFORM_LABEL, weeks, prevWeek, deltaPct, type Platform } from "@/lib/mock-data";
+import { skus, competitorSkus, prices, brands, categories, PLATFORMS, PLATFORM_LABEL, weeks, prevWeek, deltaPct, type Platform } from "@/lib/mock-data";
 import { useWeek } from "@/lib/week-context";
 import { formatDelta, fmtDate } from "@/lib/format";
 import { ArrowDown, ArrowUp } from "lucide-react";
@@ -19,27 +20,79 @@ type ItemKind = "sku" | "comp";
 
 function PricingPage() {
   const { week } = useWeek();
+  const [brandId, setBrandId] = useState("all");
+  const [categoryId, setCategoryId] = useState("all");
+
+  const activeBrand = brands.find((b) => b.id === brandId);
+  const activeCategoryId = categoryId;
+  const activeCategory = categories.find((c) => c.id === activeCategoryId);
+  const brandLabel = activeBrand?.name ?? "all brands";
+  const categoryLabel = activeCategory?.name ?? "all categories";
+
+  function handleBrandChange(val: string) {
+    setBrandId(val);
+    if (val !== "all") {
+      const brand = brands.find((b) => b.id === val);
+      if (brand) setCategoryId(brand.categoryId);
+    } else {
+      setCategoryId("all");
+    }
+  }
+
   return (
     <div>
       <PageHeader title="Price tracking" />
+      <div className="flex gap-3 mb-4">
+        <Select value={brandId} onValueChange={handleBrandChange}>
+          <SelectTrigger className="h-8 w-44 text-xs"><SelectValue placeholder="All brands" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all" className="text-xs">All brands</SelectItem>
+            {brands.map((b) => <SelectItem key={b.id} value={b.id} className="text-xs">{b.name}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Select value={activeCategoryId} onValueChange={setCategoryId} disabled={brandId !== "all"}>
+          <SelectTrigger className="h-8 w-44 text-xs"><SelectValue placeholder="All categories" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all" className="text-xs">All categories</SelectItem>
+            {categories.map((c) => <SelectItem key={c.id} value={c.id} className="text-xs">{c.name}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </div>
       <Tabs defaultValue="haleon">
         <TabsList>
           <TabsTrigger value="haleon">Haleon SKUs</TabsTrigger>
           <TabsTrigger value="comp">Competitor SKUs</TabsTrigger>
         </TabsList>
-        <TabsContent value="haleon"><PriceTable kind="sku" week={week} /></TabsContent>
-        <TabsContent value="comp"><PriceTable kind="comp" week={week} /></TabsContent>
+        <TabsContent value="haleon">
+          <PriceTable kind="sku" week={week} brandId={brandId} categoryId={activeCategoryId} brandLabel={brandLabel} categoryLabel={categoryLabel} />
+        </TabsContent>
+        <TabsContent value="comp">
+          <PriceTable kind="comp" week={week} brandId={brandId} categoryId={activeCategoryId} brandLabel={brandLabel} categoryLabel={categoryLabel} />
+        </TabsContent>
       </Tabs>
     </div>
   );
 }
 
-function PriceTable({ kind, week }: { kind: ItemKind; week: string }) {
-  const items = kind === "sku"
-    ? skus.map((s) => ({ id: s.id, name: s.name }))
-    : competitorSkus.map((c) => ({ id: c.id, name: c.name }));
-  const prev = prevWeek(week);
+type PriceTableProps = { kind: ItemKind; week: string; brandId: string; categoryId: string; brandLabel: string; categoryLabel: string };
+
+function PriceTable({ kind, week, brandId, categoryId, brandLabel, categoryLabel }: PriceTableProps) {
   const [openId, setOpenId] = useState<string | null>(null);
+  const prev = prevWeek(week);
+
+  const items: { id: string; name: string }[] = (() => {
+    if (kind === "sku") {
+      if (brandId !== "all") return skus.filter((s) => s.brandId === brandId).map((s) => ({ id: s.id, name: s.name }));
+      if (categoryId !== "all") {
+        const brandIds = new Set(brands.filter((b) => b.categoryId === categoryId).map((b) => b.id));
+        return skus.filter((s) => brandIds.has(s.brandId)).map((s) => ({ id: s.id, name: s.name }));
+      }
+      return skus.map((s) => ({ id: s.id, name: s.name }));
+    } else {
+      if (categoryId !== "all") return competitorSkus.filter((c) => c.categoryId === categoryId).map((c) => ({ id: c.id, name: c.name }));
+      return competitorSkus.map((c) => ({ id: c.id, name: c.name }));
+    }
+  })();
 
   const rows = items.flatMap((it) => PLATFORMS.map((p) => {
     const curr = prices.find((x) => (kind === "sku" ? x.skuId : x.competitorSkuId) === it.id && x.platform === p && x.weekEnding === week);
@@ -50,6 +103,9 @@ function PriceTable({ kind, week }: { kind: ItemKind; week: string }) {
 
   return (
     <Card className="mt-4">
+      <div className="px-4 pt-3 pb-1 text-xs text-muted-foreground">
+        Showing {items.length} SKU{items.length !== 1 ? "s" : ""} · {brandLabel} · {categoryLabel}
+      </div>
       <CardContent className="p-0">
         <Table>
           <TableHeader>
@@ -82,15 +138,16 @@ function PriceTable({ kind, week }: { kind: ItemKind; week: string }) {
 
       <Sheet open={!!openId} onOpenChange={(o) => !o && setOpenId(null)}>
         <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
-          {openId && <PriceDetail id={openId} kind={kind} week={week} />}
+          {openId && <PriceDetail id={openId} kind={kind} week={week} activeCategoryId={categoryId} />}
         </SheetContent>
       </Sheet>
     </Card>
   );
 }
 
-function PriceDetail({ id, kind, week }: { id: string; kind: ItemKind; week: string }) {
-  const item = kind === "sku" ? skus.find((s) => s.id === id)! : competitorSkus.find((c) => c.id === id)!;
+function PriceDetail({ id, kind, week, activeCategoryId: _activeCategoryId }: { id: string; kind: ItemKind; week: string; activeCategoryId: string }) {
+  const item = kind === "sku" ? skus.find((s) => s.id === id) : competitorSkus.find((c) => c.id === id);
+  if (!item) return null;
   const chartData = weeks.map((w) => {
     const row: Record<string, number | string> = { w: fmtDate(w).slice(0, 6) };
     PLATFORMS.forEach((p) => {

@@ -21,7 +21,7 @@ function OfftakesPage() {
 
   const filteredSkus = useMemo(() => skus.filter((s) => {
     if (brandId !== "all" && s.brandId !== brandId) return false;
-    if (categoryId !== "all" && brands.find((b) => b.id === s.brandId)!.categoryId !== categoryId) return false;
+    if (categoryId !== "all" && brands.find((b) => b.id === s.brandId)?.categoryId !== categoryId) return false;
     return true;
   }), [brandId, categoryId]);
 
@@ -113,7 +113,7 @@ function OfftakesPage() {
             <BarChart data={brands.map((b) => {
               const row: Record<string, string | number> = { brand: b.name };
               PLATFORMS.forEach((p) => {
-                row[PLATFORM_LABEL[p]] = offtakes.filter((o) => o.weekEnding === week && o.platform === p && skus.find((s) => s.id === o.skuId)!.brandId === b.id).reduce((a, r) => a + r.gmv, 0);
+                row[PLATFORM_LABEL[p]] = offtakes.filter((o) => o.weekEnding === week && o.platform === p && skus.find((s) => s.id === o.skuId)?.brandId === b.id).reduce((a, r) => a + r.gmv, 0);
               });
               return row;
             })}>
