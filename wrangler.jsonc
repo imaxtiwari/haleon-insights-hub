@@ -4,4 +4,11 @@
   "compatibility_date": "2025-09-24",
   "compatibility_flags": ["nodejs_compat"],
   "main": "src/server.ts",
+  "d1_databases": [
+    {
+      "binding": "haleon_insights_db",
+      "database_name": "haleon-insights-db",
+      "database_id": "fdc4ae42-9746-4ff6-b49e-11c153261a9d"
+    }
+  ]
 }

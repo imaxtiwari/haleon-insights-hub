@@ -374,32 +374,32 @@ export function skuById(id: string) { return skus.find((s) => s.id === id)!; }
 export function brandById(id: string) { return brands.find((b) => b.id === id)!; }
 export function categoryById(id: string) { return categories.find((c) => c.id === id)!; }
 
-export function brandGMV(brandId: string, platform: Platform, week: string): number {
+export function brandGMV(brandId: string, platform: Platform, week: string, offtakeData?: OfftakeRow[]): number {
+  const data = offtakeData ?? offtakes;
   const brandSkuIds = new Set(skus.filter((s) => s.brandId === brandId).map((s) => s.id));
-  return offtakes
+  return data
     .filter((o) => o.platform === platform && o.weekEnding === week && brandSkuIds.has(o.skuId))
     .reduce((a, b) => a + b.gmv, 0);
 }
-export function brandUnits(brandId: string, platform: Platform, week: string): number {
+export function brandUnits(brandId: string, platform: Platform, week: string, offtakeData?: OfftakeRow[]): number {
+  const data = offtakeData ?? offtakes;
   const brandSkuIds = new Set(skus.filter((s) => s.brandId === brandId).map((s) => s.id));
-  return offtakes
+  return data
     .filter((o) => o.platform === platform && o.weekEnding === week && brandSkuIds.has(o.skuId))
     .reduce((a, b) => a + b.units, 0);
 }
-export function categoryGMV(categoryId: string, platform: Platform, week: string): number {
-  // Approximate category GMV = Haleon brand GMV in category + an inflated competitor share.
+export function categoryGMV(categoryId: string, platform: Platform, week: string, offtakeData?: OfftakeRow[]): number {
   const haleonInCat = brands.filter((b) => b.categoryId === categoryId);
-  const haleonGMV = haleonInCat.reduce((a, b) => a + brandGMV(b.id, platform, week), 0);
-  // Assume Haleon = ~35-55% of category depending on category.
+  const haleonGMV = haleonInCat.reduce((a, b) => a + brandGMV(b.id, platform, week, offtakeData), 0);
   const r = rngFor(`cat-${categoryId}-${platform}-${week}`);
   const haleonShare = 0.35 + r() * 0.2;
   return Math.round(haleonGMV / haleonShare);
 }
-export function brandMarketShare(brandId: string, platform: Platform, week: string): number {
+export function brandMarketShare(brandId: string, platform: Platform, week: string, offtakeData?: OfftakeRow[]): number {
   const b = brandById(brandId);
-  const cat = categoryGMV(b.categoryId, platform, week);
+  const cat = categoryGMV(b.categoryId, platform, week, offtakeData);
   if (!cat) return 0;
-  return +((brandGMV(brandId, platform, week) / cat) * 100).toFixed(2);
+  return +((brandGMV(brandId, platform, week, offtakeData) / cat) * 100).toFixed(2);
 }
 
 export function deltaPct(curr: number, prev: number): number {
@@ -413,13 +413,16 @@ export function prevWeek(week: string): string | null {
 }
 
 // ==== Score helpers for /brand-health ====
-export function visibilityScore(brandId: string, platform: Platform | "all", week: string): number {
+// Each accepts an optional data array; falls back to mock data when omitted.
+
+export function visibilityScore(brandId: string, platform: Platform | "all", week: string, visData?: VisibilityRow[]): number {
+  const data = visData ?? visibility;
   const kws = brandKeywords[brandId] ?? [];
   const plats = platform === "all" ? PLATFORMS : [platform];
   let total = 0, n = 0;
   kws.forEach((kw) => {
     plats.forEach((p) => {
-      const row = visibility.find((v) => v.brandId === brandId && v.keyword === kw && v.platform === p && v.weekEnding === week);
+      const row = data.find((v) => v.brandId === brandId && v.keyword === kw && v.platform === p && v.weekEnding === week);
       if (!row) return;
       n++;
       if (row.rank == null) total += 0;
@@ -431,13 +434,14 @@ export function visibilityScore(brandId: string, platform: Platform | "all", wee
   });
   return n ? Math.round(total / n) : 0;
 }
-export function listingScore(brandId: string, platform: Platform | "all", week: string): number {
+export function listingScore(brandId: string, platform: Platform | "all", week: string, listData?: ListingRow[]): number {
+  const data = listData ?? listings;
   const sIds = skus.filter((s) => s.brandId === brandId).map((s) => s.id);
   const plats = platform === "all" ? PLATFORMS : [platform];
   let listed = 0, total = 0;
   sIds.forEach((id) => {
     plats.forEach((p) => {
-      const row = listings.find((l) => l.skuId === id && l.platform === p && l.weekEnding === week);
+      const row = data.find((l) => l.skuId === id && l.platform === p && l.weekEnding === week);
       if (!row) return;
       total++;
       if (row.status === "listed") listed++;
@@ -445,41 +449,55 @@ export function listingScore(brandId: string, platform: Platform | "all", week: 
   });
   return total ? Math.round((listed / total) * 100) : 0;
 }
-export function priceCompetitivenessScore(brandId: string, platform: Platform | "all", week: string): number {
-  // Score = lower selling price vs MRP is better. Average discount % across brand SKUs.
+export function priceCompetitivenessScore(brandId: string, platform: Platform | "all", week: string, priceData?: PriceRow[]): number {
+  const data = priceData ?? prices;
   const brandSkus = skus.filter((s) => s.brandId === brandId);
   const plats = platform === "all" ? PLATFORMS : [platform];
   let total = 0, n = 0;
   brandSkus.forEach((s) => {
     plats.forEach((p) => {
-      const pr = prices.find((x) => x.skuId === s.id && x.platform === p && x.weekEnding === week);
+      const pr = data.find((x) => x.skuId === s.id && x.platform === p && x.weekEnding === week);
       if (!pr) return;
-      const disc = 1 - pr.price / s.mrp; // 0..0.45
+      const disc = 1 - pr.price / s.mrp;
       n++;
       total += Math.min(100, Math.round(disc * 250));
     });
   });
   return n ? Math.round(total / n) : 0;
 }
-export function marketShareScore(brandId: string, platform: Platform | "all", week: string): number {
+export function marketShareScore(
+  brandId: string,
+  platform: Platform | "all",
+  week: string,
+  offtakeData?: OfftakeRow[],
+  fsMap?: Map<string, number>,
+): number {
   const plats = platform === "all" ? PLATFORMS : [platform];
   let total = 0;
   plats.forEach((p) => {
-    const ms = brandMarketShare(brandId, p, week);
-    const fs = getFairShare(brandId, p);
-    // If gap >=0 (meeting fair share) -> 100; gap of -10pp -> 50; -20pp -> 0
+    const ms = brandMarketShare(brandId, p, week, offtakeData);
+    const fs = fsMap ? (fsMap.get(`${brandId}|${p}`) ?? 20) : getFairShare(brandId, p);
     const gap = ms - fs;
     const sc = Math.max(0, Math.min(100, 100 + gap * 5));
     total += sc;
   });
   return Math.round(total / plats.length);
 }
-export function overallBrandHealth(brandId: string, platform: Platform | "all", week: string): number {
+
+export type ScoreData = {
+  offtakes?: OfftakeRow[];
+  listings?: ListingRow[];
+  visibility?: VisibilityRow[];
+  prices?: PriceRow[];
+  fairShares?: Map<string, number>;
+};
+
+export function overallBrandHealth(brandId: string, platform: Platform | "all", week: string, data?: ScoreData): number {
   return Math.round(
-    (visibilityScore(brandId, platform, week) +
-      listingScore(brandId, platform, week) +
-      priceCompetitivenessScore(brandId, platform, week) +
-      marketShareScore(brandId, platform, week)) /
+    (visibilityScore(brandId, platform, week, data?.visibility) +
+      listingScore(brandId, platform, week, data?.listings) +
+      priceCompetitivenessScore(brandId, platform, week, data?.prices) +
+      marketShareScore(brandId, platform, week, data?.offtakes, data?.fairShares)) /
       4,
   );
 }

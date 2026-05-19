@@ -7,18 +7,23 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useState } from "react";
-import { skus, competitorSkus, prices, brands, categories, PLATFORMS, PLATFORM_LABEL, weeks, prevWeek, deltaPct, type Platform } from "@/lib/mock-data";
+import { skus, competitorSkus, brands, categories, PLATFORMS, PLATFORM_LABEL, weeks, prevWeek, deltaPct, type Platform } from "@/lib/mock-data";
+import { fetchPrices, type DbPriceRow } from "@/lib/server/queries";
 import { useWeek } from "@/lib/week-context";
 import { formatDelta, fmtDate } from "@/lib/format";
 import { ArrowDown, ArrowUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { LineChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
-export const Route = createFileRoute("/pricing")({ component: PricingPage });
+export const Route = createFileRoute("/pricing")({
+  loader: () => fetchPrices(),
+  component: PricingPage,
+});
 
 type ItemKind = "sku" | "comp";
 
 function PricingPage() {
+  const priceRows = Route.useLoaderData();
   const { week } = useWeek();
   const [brandId, setBrandId] = useState("all");
   const [categoryId, setCategoryId] = useState("all");
@@ -64,19 +69,19 @@ function PricingPage() {
           <TabsTrigger value="comp">Competitor SKUs</TabsTrigger>
         </TabsList>
         <TabsContent value="haleon">
-          <PriceTable kind="sku" week={week} brandId={brandId} categoryId={activeCategoryId} brandLabel={brandLabel} categoryLabel={categoryLabel} />
+          <PriceTable priceRows={priceRows} kind="sku" week={week} brandId={brandId} categoryId={activeCategoryId} brandLabel={brandLabel} categoryLabel={categoryLabel} />
         </TabsContent>
         <TabsContent value="comp">
-          <PriceTable kind="comp" week={week} brandId={brandId} categoryId={activeCategoryId} brandLabel={brandLabel} categoryLabel={categoryLabel} />
+          <PriceTable priceRows={priceRows} kind="comp" week={week} brandId={brandId} categoryId={activeCategoryId} brandLabel={brandLabel} categoryLabel={categoryLabel} />
         </TabsContent>
       </Tabs>
     </div>
   );
 }
 
-type PriceTableProps = { kind: ItemKind; week: string; brandId: string; categoryId: string; brandLabel: string; categoryLabel: string };
+type PriceTableProps = { priceRows: DbPriceRow[]; kind: ItemKind; week: string; brandId: string; categoryId: string; brandLabel: string; categoryLabel: string };
 
-function PriceTable({ kind, week, brandId, categoryId, brandLabel, categoryLabel }: PriceTableProps) {
+function PriceTable({ priceRows, kind, week, brandId, categoryId, brandLabel, categoryLabel }: PriceTableProps) {
   const [openId, setOpenId] = useState<string | null>(null);
   const prev = prevWeek(week);
 
@@ -95,8 +100,8 @@ function PriceTable({ kind, week, brandId, categoryId, brandLabel, categoryLabel
   })();
 
   const rows = items.flatMap((it) => PLATFORMS.map((p) => {
-    const curr = prices.find((x) => (kind === "sku" ? x.skuId : x.competitorSkuId) === it.id && x.platform === p && x.weekEnding === week);
-    const pr = prev ? prices.find((x) => (kind === "sku" ? x.skuId : x.competitorSkuId) === it.id && x.platform === p && x.weekEnding === prev) : null;
+    const curr = priceRows.find((x) => x.itemId === it.id && x.itemKind === kind && x.platform === p && x.weekEnding === week);
+    const pr = prev ? priceRows.find((x) => x.itemId === it.id && x.itemKind === kind && x.platform === p && x.weekEnding === prev) : null;
     const change = curr && pr ? deltaPct(curr.price, pr.price) : 0;
     return { id: it.id, name: it.name, platform: p, curr: curr?.price ?? 0, prev: pr?.price ?? 0, change };
   })).sort((a, b) => Math.abs(b.change) - Math.abs(a.change));
@@ -138,26 +143,26 @@ function PriceTable({ kind, week, brandId, categoryId, brandLabel, categoryLabel
 
       <Sheet open={!!openId} onOpenChange={(o) => !o && setOpenId(null)}>
         <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
-          {openId && <PriceDetail id={openId} kind={kind} week={week} activeCategoryId={categoryId} />}
+          {openId && <PriceDetail id={openId} kind={kind} week={week} priceRows={priceRows} activeCategoryId={categoryId} />}
         </SheetContent>
       </Sheet>
     </Card>
   );
 }
 
-function PriceDetail({ id, kind, week, activeCategoryId: _activeCategoryId }: { id: string; kind: ItemKind; week: string; activeCategoryId: string }) {
+function PriceDetail({ id, kind, week, priceRows, activeCategoryId: _activeCategoryId }: { id: string; kind: ItemKind; week: string; priceRows: DbPriceRow[]; activeCategoryId: string }) {
   const item = kind === "sku" ? skus.find((s) => s.id === id) : competitorSkus.find((c) => c.id === id);
   if (!item) return null;
   const chartData = weeks.map((w) => {
     const row: Record<string, number | string> = { w: fmtDate(w).slice(0, 6) };
     PLATFORMS.forEach((p) => {
-      const r = prices.find((x) => (kind === "sku" ? x.skuId : x.competitorSkuId) === id && x.platform === p && x.weekEnding === w);
+      const r = priceRows.find((x) => x.itemId === id && x.itemKind === kind && x.platform === p && x.weekEnding === w);
       row[p] = r?.price ?? 0;
     });
     return row;
   });
   const today = PLATFORMS.map((p) => ({
-    p, price: prices.find((x) => (kind === "sku" ? x.skuId : x.competitorSkuId) === id && x.platform === p && x.weekEnding === week)?.price ?? 0,
+    p, price: priceRows.find((x) => x.itemId === id && x.itemKind === kind && x.platform === p && x.weekEnding === week)?.price ?? 0,
   }));
   return (
     <>

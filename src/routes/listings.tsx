@@ -4,14 +4,18 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useState } from "react";
-import { brands, skus, listings, PLATFORMS, PLATFORM_LABEL, prevWeek, type Platform } from "@/lib/mock-data";
+import { brands, skus, PLATFORMS, PLATFORM_LABEL, prevWeek, type Platform, type ListingRow } from "@/lib/mock-data";
+import { fetchListings } from "@/lib/server/queries";
 import { useWeek } from "@/lib/week-context";
 import { ChevronDown, ChevronRight } from "lucide-react";
 
-export const Route = createFileRoute("/listings")({ component: ListingsPage });
+export const Route = createFileRoute("/listings")({
+  loader: () => fetchListings(),
+  component: ListingsPage,
+});
 
-function platformTotals(platform: Platform, week: string) {
-  const rows = listings.filter((l) => l.platform === platform && l.weekEnding === week);
+function platformTotals(platform: Platform, week: string, allListings: ListingRow[]) {
+  const rows = allListings.filter((l) => l.platform === platform && l.weekEnding === week);
   const total = rows.length;
   const listed = rows.filter((r) => r.status === "listed").length;
   const unlisted = rows.filter((r) => r.status === "unlisted").length;
@@ -20,6 +24,7 @@ function platformTotals(platform: Platform, week: string) {
 }
 
 function ListingsPage() {
+  const listings = Route.useLoaderData();
   const { week } = useWeek();
   const prev = prevWeek(week);
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -29,7 +34,7 @@ function ListingsPage() {
       <PageHeader title="Listing health" />
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
         {PLATFORMS.map((p) => {
-          const t = platformTotals(p, week);
+          const t = platformTotals(p, week, listings);
           return (
             <Card key={p}>
               <CardHeader className="pb-2"><CardTitle className="text-sm">{PLATFORM_LABEL[p]}</CardTitle></CardHeader>
@@ -66,7 +71,7 @@ function ListingsPage() {
                 const rows = listings.filter((l) => brandSkuIds.includes(l.skuId) && l.weekEnding === week);
                 const listed = rows.filter((r) => r.status === "listed").length;
                 const pct = rows.length ? (listed / rows.length) * 100 : 0;
-                const prevRows = prev ? listings.filter((l) => brandSkuIds.includes(l.skuId) && l.weekEnding === prev) : [];
+                const prevRows = prev ? listings.filter((l) => brandSkuIds.includes(l.skuId) && l.weekEnding === prev) : [] as ListingRow[];
                 const prevPct = prevRows.length ? (prevRows.filter((r) => r.status === "listed").length / prevRows.length) * 100 : 0;
                 const newlyUnlisted: string[] = [];
                 const newlyRelisted: string[] = [];

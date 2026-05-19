@@ -2,20 +2,25 @@ import { createFileRoute } from "@tanstack/react-router";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useWeek } from "@/lib/week-context";
-import { platformMetrics, PLATFORMS, PLATFORM_LABEL, prevWeek, deltaPct, weeks, type Platform } from "@/lib/mock-data";
+import { PLATFORMS, PLATFORM_LABEL, prevWeek, deltaPct, weeks, type Platform } from "@/lib/mock-data";
+import { fetchPlatformMetrics } from "@/lib/server/queries";
 import { formatINR, formatNum, formatPct, formatDelta, fmtDate } from "@/lib/format";
 import { ArrowDownRight, ArrowUpRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { LineChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
-export const Route = createFileRoute("/snapshot")({ component: SnapshotPage });
-
-function getMetric(p: Platform, week: string) {
-  return platformMetrics.find((m) => m.platform === p && m.weekEnding === week) ?? null;
-}
+export const Route = createFileRoute("/snapshot")({
+  loader: () => fetchPlatformMetrics(),
+  component: SnapshotPage,
+});
 
 function SnapshotPage() {
+  const platformMetrics = Route.useLoaderData();
   const { week } = useWeek();
+
+  function getMetric(p: Platform, w: string) {
+    return platformMetrics.find((m) => m.platform === p && m.weekEnding === w) ?? null;
+  }
   const prev = prevWeek(week);
 
   return (

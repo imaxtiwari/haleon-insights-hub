@@ -4,16 +4,21 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useState, useMemo } from "react";
-import { brands, categories, skus, offtakes, PLATFORMS, PLATFORM_LABEL, weeks, prevWeek, deltaPct, type Platform } from "@/lib/mock-data";
+import { brands, categories, skus, PLATFORMS, PLATFORM_LABEL, weeks, prevWeek, deltaPct, type Platform } from "@/lib/mock-data";
+import { fetchOfftakes } from "@/lib/server/queries";
 import { useWeek } from "@/lib/week-context";
 import { formatINR, formatNum, formatDelta } from "@/lib/format";
 import { ArrowDownRight, ArrowUpRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { BarChart, Bar, LineChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis, Legend } from "recharts";
 
-export const Route = createFileRoute("/offtakes")({ component: OfftakesPage });
+export const Route = createFileRoute("/offtakes")({
+  loader: () => fetchOfftakes(),
+  component: OfftakesPage,
+});
 
 function OfftakesPage() {
+  const offtakes = Route.useLoaderData();
   const { week } = useWeek();
   const [brandId, setBrandId] = useState<string>("all");
   const [platform, setPlatform] = useState<Platform | "all">("all");

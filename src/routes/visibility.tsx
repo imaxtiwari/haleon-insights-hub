@@ -4,7 +4,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useState } from "react";
-import { brands, brandKeywords, PLATFORMS, PLATFORM_LABEL, visibility, weeks, prevWeek } from "@/lib/mock-data";
+import { brands, brandKeywords, PLATFORMS, PLATFORM_LABEL, weeks, prevWeek } from "@/lib/mock-data";
+import { fetchVisibility } from "@/lib/server/queries";
 import { useWeek } from "@/lib/week-context";
 import { cn } from "@/lib/utils";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -12,7 +13,10 @@ import { AlertTriangle, ChevronDown, ChevronRight } from "lucide-react";
 import { LineChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { fmtDate } from "@/lib/format";
 
-export const Route = createFileRoute("/visibility")({ component: VisibilityPage });
+export const Route = createFileRoute("/visibility")({
+  loader: () => fetchVisibility(),
+  component: VisibilityPage,
+});
 
 function rankClass(r: number | null) {
   if (r == null) return "bg-destructive/15 text-destructive";
@@ -22,6 +26,7 @@ function rankClass(r: number | null) {
 }
 
 function VisibilityPage() {
+  const visibility = Route.useLoaderData();
   const { week } = useWeek();
   const [brandId, setBrandId] = useState(brands[0].id);
   const [expanded, setExpanded] = useState<string | null>(null);

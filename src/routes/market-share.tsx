@@ -5,31 +5,49 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useMemo, useState } from "react";
-import { brands, PLATFORMS, PLATFORM_LABEL, brandMarketShare, categoryGMV, getFairShare, setFairShare, type Platform } from "@/lib/mock-data";
+import { brands, PLATFORMS, PLATFORM_LABEL, brandMarketShare, categoryGMV, type Platform } from "@/lib/mock-data";
+import { fetchOfftakes, fetchFairShares, updateFairShare } from "@/lib/server/queries";
 import { useWeek } from "@/lib/week-context";
 import { formatINR } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
-export const Route = createFileRoute("/market-share")({ component: MarketSharePage });
+export const Route = createFileRoute("/market-share")({
+  loader: async () => {
+    const [offtakes, fairShares] = await Promise.all([fetchOfftakes(), fetchFairShares()]);
+    return { offtakes, fairShares };
+  },
+  component: MarketSharePage,
+});
 
 type Row = { brandId: string; brandName: string; platform: Platform; ms: number; fs: number; gap: number; opp: number; catGmv: number };
 
 function MarketSharePage() {
+  const { offtakes, fairShares } = Route.useLoaderData();
   const { week } = useWeek();
-  const [bump, setBump] = useState(0);
   const [platform, setPlatform] = useState<Platform | "all">("all");
+
+  // Local fair-share state — initialised from D1, updated optimistically on blur.
+  const [fsMap, setFsMap] = useState<Map<string, number>>(
+    () => new Map(fairShares.map((r) => [`${r.brandId}|${r.platform}`, r.targetPct])),
+  );
+
+  async function handleFairShareBlur(brandId: string, p: Platform, raw: string) {
+    const val = Math.max(0, Math.min(100, Number(raw)));
+    setFsMap((prev) => new Map(prev).set(`${brandId}|${p}`, val));
+    await updateFairShare({ data: { brandId, platform: p, targetPct: val } });
+  }
 
   const allRows: Row[] = useMemo(() => {
     const out: Row[] = [];
     brands.forEach((b) => PLATFORMS.forEach((p) => {
-      const ms = brandMarketShare(b.id, p, week);
-      const fs = getFairShare(b.id, p);
-      const cat = categoryGMV(b.categoryId, p, week);
+      const ms = brandMarketShare(b.id, p, week, offtakes);
+      const fs = fsMap.get(`${b.id}|${p}`) ?? 20;
+      const cat = categoryGMV(b.categoryId, p, week, offtakes);
       const opp = Math.max(0, ((fs - ms) / 100) * cat);
       out.push({ brandId: b.id, brandName: b.name, platform: p, ms, fs, gap: ms - fs, opp, catGmv: cat });
     }));
     return out.sort((a, b) => b.opp - a.opp);
-  }, [week, bump]);
+  }, [week, offtakes, fsMap]);
 
   const totalsPerPlatform = PLATFORMS.map((p) => ({
     p, opp: allRows.filter((r) => r.platform === p).reduce((a, r) => a + r.opp, 0),
@@ -94,7 +112,7 @@ function MarketSharePage() {
                       type="number"
                       step={0.5}
                       defaultValue={r.fs}
-                      onBlur={(e) => { setFairShare(r.brandId, r.platform, Number(e.target.value)); setBump((x) => x + 1); }}
+                      onBlur={(e) => { void handleFairShareBlur(r.brandId, r.platform, e.target.value); }}
                       className="h-7 w-20 text-right text-xs tabular-nums ml-auto"
                     />
                   </TableCell>

@@ -3,12 +3,22 @@ import { PageHeader } from "@/components/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { useState } from "react";
-import { brands, PLATFORMS, PLATFORM_LABEL, visibilityScore, listingScore, priceCompetitivenessScore, marketShareScore, overallBrandHealth, type Platform } from "@/lib/mock-data";
+import { useMemo, useState } from "react";
+import { brands, PLATFORMS, PLATFORM_LABEL, visibilityScore, listingScore, priceCompetitivenessScore, marketShareScore, overallBrandHealth, type Platform, type PriceRow } from "@/lib/mock-data";
+import { fetchOfftakes, fetchListings, fetchVisibility, fetchPrices, fetchFairShares, toPriceRows } from "@/lib/server/queries";
 import { useWeek } from "@/lib/week-context";
 import { cn } from "@/lib/utils";
 
-export const Route = createFileRoute("/brand-health")({ component: BrandHealthPage });
+export const Route = createFileRoute("/brand-health")({
+  loader: async () => {
+    const [offtakes, listings, visibility, dbPrices, fairShares] = await Promise.all([
+      fetchOfftakes(), fetchListings(), fetchVisibility(), fetchPrices(), fetchFairShares(),
+    ]);
+    const prices: PriceRow[] = toPriceRows(dbPrices);
+    return { offtakes, listings, visibility, prices, fairShares };
+  },
+  component: BrandHealthPage,
+});
 
 function scoreClass(v: number) {
   if (v < 40) return "bg-destructive/15 text-destructive";
@@ -17,6 +27,12 @@ function scoreClass(v: number) {
 }
 
 function BrandHealthPage() {
+  const { offtakes, listings, visibility, prices, fairShares } = Route.useLoaderData();
+  const fsMap = useMemo(
+    () => new Map(fairShares.map((r) => [`${r.brandId}|${r.platform}`, r.targetPct])),
+    [fairShares],
+  );
+  const scoreData = useMemo(() => ({ offtakes, listings, visibility, prices, fairShares: fsMap }), [offtakes, listings, visibility, prices, fsMap]);
   const { week } = useWeek();
   const [platform, setPlatform] = useState<Platform | "all">("all");
   return (
@@ -49,11 +65,11 @@ function BrandHealthPage() {
             </TableHeader>
             <TableBody>
               {brands.map((b) => {
-                const v = visibilityScore(b.id, platform, week);
-                const l = listingScore(b.id, platform, week);
-                const pr = priceCompetitivenessScore(b.id, platform, week);
-                const ms = marketShareScore(b.id, platform, week);
-                const o = overallBrandHealth(b.id, platform, week);
+                const v = visibilityScore(b.id, platform, week, scoreData.visibility);
+                const l = listingScore(b.id, platform, week, scoreData.listings);
+                const pr = priceCompetitivenessScore(b.id, platform, week, scoreData.prices);
+                const ms = marketShareScore(b.id, platform, week, scoreData.offtakes, scoreData.fairShares);
+                const o = overallBrandHealth(b.id, platform, week, scoreData);
                 return (
                   <TableRow key={b.id} className="h-10">
                     <TableCell className="font-medium">{b.name}</TableCell>

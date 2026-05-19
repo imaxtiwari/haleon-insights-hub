@@ -5,15 +5,21 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { uploads, PLATFORMS, PLATFORM_LABEL, weeks, type Platform } from "@/lib/mock-data";
+import { PLATFORMS, PLATFORM_LABEL, latestWeek, weeks, type Platform } from "@/lib/mock-data";
+import { processUpload } from "@/lib/server/upload";
+import { fetchUploads } from "@/lib/server/queries";
 import { fmtDate } from "@/lib/format";
-import { UploadCloud, FileCheck2, ArrowRight } from "lucide-react";
+import { UploadCloud, FileCheck2, ArrowRight, Loader2 } from "lucide-react";
 import { useState, useRef } from "react";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/upload")({ component: UploadPage });
+export const Route = createFileRoute("/upload")({
+  loader: () => fetchUploads(),
+  component: UploadPage,
+});
 
 function UploadPage() {
+  const uploads = Route.useLoaderData();
   const latestPerPlatform = PLATFORMS.reduce(
     (acc, p) => ({ ...acc, [p]: "" }),
     {} as Record<Platform, string>,
@@ -71,16 +77,35 @@ function UploadPage() {
 }
 
 function DropZone({ platform, lastUpload }: { platform: Platform; lastUpload: string }) {
-  const [stage, setStage] = useState<"idle" | "map" | "preview" | "overwrite">("idle");
+  const [stage, setStage] = useState<"idle" | "map" | "preview" | "overwrite" | "submitting">("idle");
   const [fileName, setFileName] = useState<string | null>(null);
+  const [file, setFile] = useState<File | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleFile = (f: File) => {
     setFileName(f.name);
-    // Simulate "same week+platform" check by random chance.
+    setFile(f);
     if (Math.random() < 0.4) setStage("overwrite");
     else setStage("map");
   };
+
+  async function handleCommit() {
+    if (!file) return;
+    setStage("submitting");
+    try {
+      const csvText = await file.text();
+      const result = await processUpload({ data: { csvText, platform, weekEnding: latestWeek } });
+      toast.success(`${PLATFORM_LABEL[platform]} upload committed`, {
+        description: `${result.committed} rows saved · ${result.skipped} skipped`,
+        icon: <FileCheck2 className="size-4" />,
+      });
+    } catch (e) {
+      toast.error("Upload failed", { description: e instanceof Error ? e.message : "Unknown error" });
+    }
+    setStage("idle");
+    setFileName(null);
+    setFile(null);
+  }
 
   return (
     <Card className="overflow-hidden">
@@ -185,8 +210,8 @@ function DropZone({ platform, lastUpload }: { platform: Platform; lastUpload: st
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setStage("idle")}>Cancel</Button>
-            <Button onClick={() => { setStage("idle"); setFileName(null); toast.success(`${PLATFORM_LABEL[platform]} upload committed`, { description: "1,247 rows processed", icon: <FileCheck2 className="size-4" /> }); }}>
-              Commit upload
+            <Button onClick={handleCommit} disabled={stage === "submitting"}>
+              {stage === "submitting" ? <><Loader2 className="size-4 mr-2 animate-spin" />Uploading…</> : "Commit upload"}
             </Button>
           </DialogFooter>
         </DialogContent>
