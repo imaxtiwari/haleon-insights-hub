@@ -9,8 +9,62 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as VisibilityRouteImport } from './routes/visibility'
+import { Route as UploadRouteImport } from './routes/upload'
+import { Route as SnapshotRouteImport } from './routes/snapshot'
+import { Route as PricingRouteImport } from './routes/pricing'
+import { Route as OfftakesRouteImport } from './routes/offtakes'
+import { Route as MarketShareRouteImport } from './routes/market-share'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as ListingsRouteImport } from './routes/listings'
+import { Route as BrandHealthRouteImport } from './routes/brand-health'
 import { Route as IndexRouteImport } from './routes/index'
 
+const VisibilityRoute = VisibilityRouteImport.update({
+  id: '/visibility',
+  path: '/visibility',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const UploadRoute = UploadRouteImport.update({
+  id: '/upload',
+  path: '/upload',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SnapshotRoute = SnapshotRouteImport.update({
+  id: '/snapshot',
+  path: '/snapshot',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PricingRoute = PricingRouteImport.update({
+  id: '/pricing',
+  path: '/pricing',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OfftakesRoute = OfftakesRouteImport.update({
+  id: '/offtakes',
+  path: '/offtakes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MarketShareRoute = MarketShareRouteImport.update({
+  id: '/market-share',
+  path: '/market-share',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ListingsRoute = ListingsRouteImport.update({
+  id: '/listings',
+  path: '/listings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BrandHealthRoute = BrandHealthRouteImport.update({
+  id: '/brand-health',
+  path: '/brand-health',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -19,28 +73,158 @@ const IndexRoute = IndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/brand-health': typeof BrandHealthRoute
+  '/listings': typeof ListingsRoute
+  '/login': typeof LoginRoute
+  '/market-share': typeof MarketShareRoute
+  '/offtakes': typeof OfftakesRoute
+  '/pricing': typeof PricingRoute
+  '/snapshot': typeof SnapshotRoute
+  '/upload': typeof UploadRoute
+  '/visibility': typeof VisibilityRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/brand-health': typeof BrandHealthRoute
+  '/listings': typeof ListingsRoute
+  '/login': typeof LoginRoute
+  '/market-share': typeof MarketShareRoute
+  '/offtakes': typeof OfftakesRoute
+  '/pricing': typeof PricingRoute
+  '/snapshot': typeof SnapshotRoute
+  '/upload': typeof UploadRoute
+  '/visibility': typeof VisibilityRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/brand-health': typeof BrandHealthRoute
+  '/listings': typeof ListingsRoute
+  '/login': typeof LoginRoute
+  '/market-share': typeof MarketShareRoute
+  '/offtakes': typeof OfftakesRoute
+  '/pricing': typeof PricingRoute
+  '/snapshot': typeof SnapshotRoute
+  '/upload': typeof UploadRoute
+  '/visibility': typeof VisibilityRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/brand-health'
+    | '/listings'
+    | '/login'
+    | '/market-share'
+    | '/offtakes'
+    | '/pricing'
+    | '/snapshot'
+    | '/upload'
+    | '/visibility'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/brand-health'
+    | '/listings'
+    | '/login'
+    | '/market-share'
+    | '/offtakes'
+    | '/pricing'
+    | '/snapshot'
+    | '/upload'
+    | '/visibility'
+  id:
+    | '__root__'
+    | '/'
+    | '/brand-health'
+    | '/listings'
+    | '/login'
+    | '/market-share'
+    | '/offtakes'
+    | '/pricing'
+    | '/snapshot'
+    | '/upload'
+    | '/visibility'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  BrandHealthRoute: typeof BrandHealthRoute
+  ListingsRoute: typeof ListingsRoute
+  LoginRoute: typeof LoginRoute
+  MarketShareRoute: typeof MarketShareRoute
+  OfftakesRoute: typeof OfftakesRoute
+  PricingRoute: typeof PricingRoute
+  SnapshotRoute: typeof SnapshotRoute
+  UploadRoute: typeof UploadRoute
+  VisibilityRoute: typeof VisibilityRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/visibility': {
+      id: '/visibility'
+      path: '/visibility'
+      fullPath: '/visibility'
+      preLoaderRoute: typeof VisibilityRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/upload': {
+      id: '/upload'
+      path: '/upload'
+      fullPath: '/upload'
+      preLoaderRoute: typeof UploadRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/snapshot': {
+      id: '/snapshot'
+      path: '/snapshot'
+      fullPath: '/snapshot'
+      preLoaderRoute: typeof SnapshotRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pricing': {
+      id: '/pricing'
+      path: '/pricing'
+      fullPath: '/pricing'
+      preLoaderRoute: typeof PricingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/offtakes': {
+      id: '/offtakes'
+      path: '/offtakes'
+      fullPath: '/offtakes'
+      preLoaderRoute: typeof OfftakesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/market-share': {
+      id: '/market-share'
+      path: '/market-share'
+      fullPath: '/market-share'
+      preLoaderRoute: typeof MarketShareRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/listings': {
+      id: '/listings'
+      path: '/listings'
+      fullPath: '/listings'
+      preLoaderRoute: typeof ListingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/brand-health': {
+      id: '/brand-health'
+      path: '/brand-health'
+      fullPath: '/brand-health'
+      preLoaderRoute: typeof BrandHealthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -53,17 +237,16 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  BrandHealthRoute: BrandHealthRoute,
+  ListingsRoute: ListingsRoute,
+  LoginRoute: LoginRoute,
+  MarketShareRoute: MarketShareRoute,
+  OfftakesRoute: OfftakesRoute,
+  PricingRoute: PricingRoute,
+  SnapshotRoute: SnapshotRoute,
+  UploadRoute: UploadRoute,
+  VisibilityRoute: VisibilityRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

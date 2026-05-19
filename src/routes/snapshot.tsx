@@ -1,0 +1,102 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { PageHeader } from "@/components/page-header";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useWeek } from "@/lib/week-context";
+import { platformMetrics, PLATFORMS, PLATFORM_LABEL, prevWeek, deltaPct, weeks, type Platform } from "@/lib/mock-data";
+import { formatINR, formatNum, formatPct, formatDelta, fmtDate } from "@/lib/format";
+import { ArrowDownRight, ArrowUpRight } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { LineChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+
+export const Route = createFileRoute("/snapshot")({ component: SnapshotPage });
+
+function getMetric(p: Platform, week: string) {
+  return platformMetrics.find((m) => m.platform === p && m.weekEnding === week)!;
+}
+
+function SnapshotPage() {
+  const { week } = useWeek();
+  const prev = prevWeek(week);
+
+  return (
+    <div>
+      <PageHeader title="Platform snapshot" />
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {PLATFORMS.map((p) => {
+          const m = getMetric(p, week);
+          const pm = prev ? getMetric(p, prev) : null;
+          const metrics = [
+            { key: "GMV", v: formatINR(m.gmv), d: pm ? deltaPct(m.gmv, pm.gmv) : 0 },
+            { key: "MAU", v: formatNum(m.mau), d: pm ? deltaPct(m.mau, pm.mau) : 0 },
+            { key: "AOV", v: `₹${m.aov}`, d: pm ? deltaPct(m.aov, pm.aov) : 0 },
+            { key: "Reach", v: formatPct(m.reach * 100), d: pm ? deltaPct(m.reach, pm.reach) : 0 },
+          ];
+          return (
+            <Card key={p}>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base flex items-center justify-between">
+                  {PLATFORM_LABEL[p]}
+                  <span className="text-xs font-normal text-muted-foreground">{fmtDate(week)}</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="grid grid-cols-2 gap-4">
+                {metrics.map((mt) => (
+                  <div key={mt.key}>
+                    <div className="text-xs text-muted-foreground uppercase tracking-wide">{mt.key}</div>
+                    <div className="mt-1 text-2xl font-bold tabular-nums">{mt.v}</div>
+                    <Delta v={mt.d} />
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+
+      <div className="mt-8 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+        {(["gmv", "mau", "aov", "reach"] as const).map((metric) => (
+          <Card key={metric}>
+            <CardHeader className="pb-1"><CardTitle className="text-sm capitalize">{metric === "gmv" ? "GMV" : metric === "mau" ? "MAU" : metric === "aov" ? "AOV" : "Reach"} · 12 weeks</CardTitle></CardHeader>
+            <CardContent className="h-40">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={weeks.map((w) => {
+                  const row: Record<string, number | string> = { w: fmtDate(w).slice(0, 6) };
+                  PLATFORMS.forEach((p) => {
+                    const m = getMetric(p, w);
+                    row[p] = metric === "reach" ? +(m.reach * 100).toFixed(1) : (m as Record<string, unknown>)[metric] as number;
+                  });
+                  return row;
+                })}>
+                  <XAxis dataKey="w" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 10 }} axisLine={false} tickLine={false} width={36} />
+                  <Tooltip contentStyle={{ fontSize: 12, borderRadius: 6 }} />
+                  <Line type="monotone" dataKey="pharmeasy" stroke="var(--chart-1)" strokeWidth={2} dot={false} />
+                  <Line type="monotone" dataKey="zepto" stroke="var(--chart-2)" strokeWidth={2} dot={false} />
+                  <Line type="monotone" dataKey="amazon_pharmacy" stroke="var(--chart-3)" strokeWidth={2} dot={false} />
+                </LineChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+      <div className="mt-3 flex gap-4 text-xs text-muted-foreground">
+        {PLATFORMS.map((p, i) => (
+          <div key={p} className="flex items-center gap-1.5">
+            <span className="size-2 rounded-full" style={{ background: `var(--chart-${i + 1})` }} />
+            {PLATFORM_LABEL[p]}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function Delta({ v }: { v: number }) {
+  const up = v >= 0;
+  return (
+    <div className={cn("mt-1 text-xs font-medium flex items-center gap-0.5", up ? "text-success" : "text-destructive")}>
+      {up ? <ArrowUpRight className="size-3" /> : <ArrowDownRight className="size-3" />}
+      {formatDelta(v)} <span className="text-muted-foreground font-normal ml-1">vs last week</span>
+    </div>
+  );
+}
