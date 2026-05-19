@@ -65,7 +65,7 @@ function VisibilityPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-1/2">Keyword</TableHead>
+                <TableHead className="w-[36%] min-w-0 max-w-md">Keyword</TableHead>
                 {PLATFORMS.map((p) => <TableHead key={p} className="text-center">{PLATFORM_LABEL[p]}</TableHead>)}
               </TableRow>
             </TableHeader>
@@ -90,7 +90,7 @@ function VisibilityPage() {
                   </TableRow>
                   {expanded === kw && (
                     <TableRow key={`${kw}-x`}>
-                      <TableCell colSpan={4} className="bg-muted/20 h-56 p-3">
+                      <TableCell colSpan={1 + PLATFORMS.length} className="bg-muted/20 h-56 p-3">
                         <ResponsiveContainer width="100%" height="100%">
                           <LineChart data={weeks.map((w) => {
                             const row: Record<string, number | string | null> = { w: fmtDate(w).slice(0, 6) };
@@ -104,8 +104,9 @@ function VisibilityPage() {
                             <YAxis reversed domain={[1, 50]} tick={{ fontSize: 10 }} width={32} />
                             <Tooltip contentStyle={{ fontSize: 12, borderRadius: 6 }} />
                             <Line type="monotone" dataKey="pharmeasy" stroke="var(--chart-1)" strokeWidth={2} dot={{ r: 2 }} connectNulls />
-                            <Line type="monotone" dataKey="zepto" stroke="var(--chart-2)" strokeWidth={2} dot={{ r: 2 }} connectNulls />
-                            <Line type="monotone" dataKey="amazon_pharmacy" stroke="var(--chart-3)" strokeWidth={2} dot={{ r: 2 }} connectNulls />
+                            <Line type="monotone" dataKey="tata_1mg" stroke="var(--chart-2)" strokeWidth={2} dot={{ r: 2 }} connectNulls />
+                            <Line type="monotone" dataKey="zepto" stroke="var(--chart-3)" strokeWidth={2} dot={{ r: 2 }} connectNulls />
+                            <Line type="monotone" dataKey="amazon_pharmacy" stroke="var(--chart-4)" strokeWidth={2} dot={{ r: 2 }} connectNulls />
                           </LineChart>
                         </ResponsiveContainer>
                       </TableCell>

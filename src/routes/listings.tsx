@@ -27,7 +27,7 @@ function ListingsPage() {
   return (
     <div>
       <PageHeader title="Listing health" />
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
         {PLATFORMS.map((p) => {
           const t = platformTotals(p, week);
           return (
@@ -54,7 +54,7 @@ function ListingsPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Brand</TableHead>
-                <TableHead className="text-right">Total SKUs (×3 platforms)</TableHead>
+                <TableHead className="text-right">Total SKUs (×4 platforms)</TableHead>
                 <TableHead className="text-right">% Listed</TableHead>
                 <TableHead className="text-right">vs last week</TableHead>
                 <TableHead>Status changes</TableHead>

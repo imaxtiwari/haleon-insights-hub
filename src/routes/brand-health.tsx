@@ -25,7 +25,7 @@ function BrandHealthPage() {
         title="Brand health"
         right={
           <Tabs value={platform} onValueChange={(v) => setPlatform(v as Platform | "all")}>
-            <TabsList className="h-8">
+            <TabsList className="h-auto min-h-8 flex-wrap justify-end gap-1 max-w-full">
               <TabsTrigger value="all" className="text-xs h-7">All</TabsTrigger>
               {PLATFORMS.map((p) => (
                 <TabsTrigger key={p} value={p} className="text-xs h-7">{PLATFORM_LABEL[p]}</TabsTrigger>

@@ -21,7 +21,7 @@ function SnapshotPage() {
   return (
     <div>
       <PageHeader title="Platform snapshot" />
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
         {PLATFORMS.map((p) => {
           const m = getMetric(p, week);
           const pm = prev ? getMetric(p, prev) : null;
@@ -71,8 +71,9 @@ function SnapshotPage() {
                   <YAxis tick={{ fontSize: 10 }} axisLine={false} tickLine={false} width={36} />
                   <Tooltip contentStyle={{ fontSize: 12, borderRadius: 6 }} />
                   <Line type="monotone" dataKey="pharmeasy" stroke="var(--chart-1)" strokeWidth={2} dot={false} />
-                  <Line type="monotone" dataKey="zepto" stroke="var(--chart-2)" strokeWidth={2} dot={false} />
-                  <Line type="monotone" dataKey="amazon_pharmacy" stroke="var(--chart-3)" strokeWidth={2} dot={false} />
+                  <Line type="monotone" dataKey="tata_1mg" stroke="var(--chart-2)" strokeWidth={2} dot={false} />
+                  <Line type="monotone" dataKey="zepto" stroke="var(--chart-3)" strokeWidth={2} dot={false} />
+                  <Line type="monotone" dataKey="amazon_pharmacy" stroke="var(--chart-4)" strokeWidth={2} dot={false} />
                 </LineChart>
               </ResponsiveContainer>
             </CardContent>

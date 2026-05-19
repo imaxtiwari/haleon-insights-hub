@@ -1,10 +1,11 @@
 // Deterministic mock data store for Haleon E-Pharm Tracker.
 // All numbers are derived once and frozen so scores/charts stay consistent.
 
-export type Platform = "pharmeasy" | "zepto" | "amazon_pharmacy";
-export const PLATFORMS: Platform[] = ["pharmeasy", "zepto", "amazon_pharmacy"];
+export type Platform = "pharmeasy" | "tata_1mg" | "zepto" | "amazon_pharmacy";
+export const PLATFORMS: Platform[] = ["pharmeasy", "tata_1mg", "zepto", "amazon_pharmacy"];
 export const PLATFORM_LABEL: Record<Platform, string> = {
   pharmeasy: "PharmEasy",
+  tata_1mg: "Tata 1mg",
   zepto: "Zepto Pharmacy",
   amazon_pharmacy: "Amazon Pharmacy",
 };
@@ -40,28 +41,28 @@ export const brands: Brand[] = [
 ];
 
 export const skus: SKU[] = [
-  { id: "sk-sen-1", brandId: "sensodyne", name: "Sensodyne Rapid Relief 75g", packSize: "75g", mrp: 220, ids: pIds("PE-SEN1", "ZP-SEN1", "AM-SEN1") },
-  { id: "sk-sen-2", brandId: "sensodyne", name: "Sensodyne Fresh Mint 70g", packSize: "70g", mrp: 165, ids: pIds("PE-SEN2", "ZP-SEN2", "AM-SEN2") },
-  { id: "sk-sen-3", brandId: "sensodyne", name: "Sensodyne Repair & Protect 70g", packSize: "70g", mrp: 240, ids: pIds("PE-SEN3", "ZP-SEN3", "AM-SEN3") },
-  { id: "sk-cro-1", brandId: "crocin", name: "Crocin Advance 500mg 15 tabs", packSize: "15 tabs", mrp: 40, ids: pIds("PE-CRO1", "ZP-CRO1", "AM-CRO1") },
-  { id: "sk-cro-2", brandId: "crocin", name: "Crocin Pain Relief 650mg 15 tabs", packSize: "15 tabs", mrp: 65, ids: pIds("PE-CRO2", "ZP-CRO2", "AM-CRO2") },
-  { id: "sk-cro-3", brandId: "crocin", name: "Crocin Cold & Flu Max 10 tabs", packSize: "10 tabs", mrp: 90, ids: pIds("PE-CRO3", "ZP-CRO3", "AM-CRO3") },
-  { id: "sk-pan-1", brandId: "panadol", name: "Panadol Extra 500mg 10 tabs", packSize: "10 tabs", mrp: 55, ids: pIds("PE-PAN1", "ZP-PAN1", "AM-PAN1") },
-  { id: "sk-pan-2", brandId: "panadol", name: "Panadol Cold + Flu All-in-One 10 tabs", packSize: "10 tabs", mrp: 95, ids: pIds("PE-PAN2", "ZP-PAN2", "AM-PAN2") },
-  { id: "sk-vol-1", brandId: "voltaren", name: "Voltaren Emulgel 50g", packSize: "50g", mrp: 280, ids: pIds("PE-VOL1", "ZP-VOL1", "AM-VOL1") },
-  { id: "sk-vol-2", brandId: "voltaren", name: "Voltaren Plus 20 tabs", packSize: "20 tabs", mrp: 140, ids: pIds("PE-VOL2", "ZP-VOL2", "AM-VOL2") },
-  { id: "sk-cen-1", brandId: "centrum", name: "Centrum Adults 30 tabs", packSize: "30 tabs", mrp: 420, ids: pIds("PE-CEN1", "ZP-CEN1", "AM-CEN1") },
-  { id: "sk-cen-2", brandId: "centrum", name: "Centrum Women 30 tabs", packSize: "30 tabs", mrp: 440, ids: pIds("PE-CEN2", "ZP-CEN2", "AM-CEN2") },
-  { id: "sk-cen-3", brandId: "centrum", name: "Centrum Men 30 tabs", packSize: "30 tabs", mrp: 440, ids: pIds("PE-CEN3", "ZP-CEN3", "AM-CEN3") },
-  { id: "sk-otr-1", brandId: "otrivin", name: "Otrivin Adult Nasal Spray 10ml", packSize: "10ml", mrp: 125, ids: pIds("PE-OTR1", "ZP-OTR1", "AM-OTR1") },
-  { id: "sk-otr-2", brandId: "otrivin", name: "Otrivin Plus 10ml", packSize: "10ml", mrp: 155, ids: pIds("PE-OTR2", "ZP-OTR2", "AM-OTR2") },
-  { id: "sk-eno-1", brandId: "eno", name: "ENO Lemon 5g sachet ×30", packSize: "5g ×30", mrp: 150, ids: pIds("PE-ENO1", "ZP-ENO1", "AM-ENO1") },
-  { id: "sk-eno-2", brandId: "eno", name: "ENO Orange 5g sachet ×30", packSize: "5g ×30", mrp: 150, ids: pIds("PE-ENO2", "ZP-ENO2", "AM-ENO2") },
-  { id: "sk-eno-3", brandId: "eno", name: "ENO Regular 100g bottle", packSize: "100g", mrp: 110, ids: pIds("PE-ENO3", "ZP-ENO3", "AM-ENO3") },
+  { id: "sk-sen-1", brandId: "sensodyne", name: "Sensodyne Rapid Relief 75g", packSize: "75g", mrp: 220, ids: pIds("PE-SEN1", "TM-SEN1", "ZP-SEN1", "AM-SEN1") },
+  { id: "sk-sen-2", brandId: "sensodyne", name: "Sensodyne Fresh Mint 70g", packSize: "70g", mrp: 165, ids: pIds("PE-SEN2", "TM-SEN2", "ZP-SEN2", "AM-SEN2") },
+  { id: "sk-sen-3", brandId: "sensodyne", name: "Sensodyne Repair & Protect 70g", packSize: "70g", mrp: 240, ids: pIds("PE-SEN3", "TM-SEN3", "ZP-SEN3", "AM-SEN3") },
+  { id: "sk-cro-1", brandId: "crocin", name: "Crocin Advance 500mg 15 tabs", packSize: "15 tabs", mrp: 40, ids: pIds("PE-CRO1", "TM-CRO1", "ZP-CRO1", "AM-CRO1") },
+  { id: "sk-cro-2", brandId: "crocin", name: "Crocin Pain Relief 650mg 15 tabs", packSize: "15 tabs", mrp: 65, ids: pIds("PE-CRO2", "TM-CRO2", "ZP-CRO2", "AM-CRO2") },
+  { id: "sk-cro-3", brandId: "crocin", name: "Crocin Cold & Flu Max 10 tabs", packSize: "10 tabs", mrp: 90, ids: pIds("PE-CRO3", "TM-CRO3", "ZP-CRO3", "AM-CRO3") },
+  { id: "sk-pan-1", brandId: "panadol", name: "Panadol Extra 500mg 10 tabs", packSize: "10 tabs", mrp: 55, ids: pIds("PE-PAN1", "TM-PAN1", "ZP-PAN1", "AM-PAN1") },
+  { id: "sk-pan-2", brandId: "panadol", name: "Panadol Cold + Flu All-in-One 10 tabs", packSize: "10 tabs", mrp: 95, ids: pIds("PE-PAN2", "TM-PAN2", "ZP-PAN2", "AM-PAN2") },
+  { id: "sk-vol-1", brandId: "voltaren", name: "Voltaren Emulgel 50g", packSize: "50g", mrp: 280, ids: pIds("PE-VOL1", "TM-VOL1", "ZP-VOL1", "AM-VOL1") },
+  { id: "sk-vol-2", brandId: "voltaren", name: "Voltaren Plus 20 tabs", packSize: "20 tabs", mrp: 140, ids: pIds("PE-VOL2", "TM-VOL2", "ZP-VOL2", "AM-VOL2") },
+  { id: "sk-cen-1", brandId: "centrum", name: "Centrum Adults 30 tabs", packSize: "30 tabs", mrp: 420, ids: pIds("PE-CEN1", "TM-CEN1", "ZP-CEN1", "AM-CEN1") },
+  { id: "sk-cen-2", brandId: "centrum", name: "Centrum Women 30 tabs", packSize: "30 tabs", mrp: 440, ids: pIds("PE-CEN2", "TM-CEN2", "ZP-CEN2", "AM-CEN2") },
+  { id: "sk-cen-3", brandId: "centrum", name: "Centrum Men 30 tabs", packSize: "30 tabs", mrp: 440, ids: pIds("PE-CEN3", "TM-CEN3", "ZP-CEN3", "AM-CEN3") },
+  { id: "sk-otr-1", brandId: "otrivin", name: "Otrivin Adult Nasal Spray 10ml", packSize: "10ml", mrp: 125, ids: pIds("PE-OTR1", "TM-OTR1", "ZP-OTR1", "AM-OTR1") },
+  { id: "sk-otr-2", brandId: "otrivin", name: "Otrivin Plus 10ml", packSize: "10ml", mrp: 155, ids: pIds("PE-OTR2", "TM-OTR2", "ZP-OTR2", "AM-OTR2") },
+  { id: "sk-eno-1", brandId: "eno", name: "ENO Lemon 5g sachet ×30", packSize: "5g ×30", mrp: 150, ids: pIds("PE-ENO1", "TM-ENO1", "ZP-ENO1", "AM-ENO1") },
+  { id: "sk-eno-2", brandId: "eno", name: "ENO Orange 5g sachet ×30", packSize: "5g ×30", mrp: 150, ids: pIds("PE-ENO2", "TM-ENO2", "ZP-ENO2", "AM-ENO2") },
+  { id: "sk-eno-3", brandId: "eno", name: "ENO Regular 100g bottle", packSize: "100g", mrp: 110, ids: pIds("PE-ENO3", "TM-ENO3", "ZP-ENO3", "AM-ENO3") },
 ];
 
-function pIds(pe: string, zp: string, am: string): Record<Platform, string | null> {
-  return { pharmeasy: pe, zepto: zp, amazon_pharmacy: am };
+function pIds(pe: string, tm: string, zp: string, am: string): Record<Platform, string | null> {
+  return { pharmeasy: pe, tata_1mg: tm, zepto: zp, amazon_pharmacy: am };
 }
 
 export const competitorSkus: CompetitorSKU[] = [
@@ -170,8 +171,9 @@ export const uploads: Upload[] = (() => {
 export type PlatformMetricRow = { platform: Platform; weekEnding: string; gmv: number; mau: number; aov: number; reach: number };
 function platformBase(p: Platform) {
   if (p === "pharmeasy") return { gmv: 18_00_00_000, mau: 280_000, aov: 520, reach: 0.28 };
+  if (p === "tata_1mg") return { gmv: 16_00_00_000, mau: 250_000, aov: 500, reach: 0.26 };
   if (p === "zepto") return { gmv: 9_00_00_000, mau: 180_000, aov: 380, reach: 0.18 };
-  return { gmv: 14_00_00_000, mau: 240_000, aov: 460, reach: 0.24 };
+  if (p === "amazon_pharmacy") return { gmv: 14_00_00_000, mau: 240_000, aov: 460, reach: 0.24 };
 }
 export const platformMetrics: PlatformMetricRow[] = (() => {
   const out: PlatformMetricRow[] = [];
@@ -272,13 +274,13 @@ function generateForcedShocks(): Map<string, number> {
   const targets = [...skus.slice(0, 10), ...competitorSkus.slice(0, 6).map((c) => ({ id: c.id }))];
   for (let i = 0; i < 10; i++) {
     const t = targets[Math.floor(r() * targets.length)];
-    const p = PLATFORMS[Math.floor(r() * 3)];
+    const p = PLATFORMS[Math.floor(r() * PLATFORMS.length)];
     const wi = 2 + Math.floor(r() * 9);
     map.set(`${t.id}|${p}|${wi}`, 0.9 + r() * 0.04); // -6% to -10%
   }
   for (let i = 0; i < 10; i++) {
     const t = targets[Math.floor(r() * targets.length)];
-    const p = PLATFORMS[Math.floor(r() * 3)];
+    const p = PLATFORMS[Math.floor(r() * PLATFORMS.length)];
     const wi = 2 + Math.floor(r() * 9);
     map.set(`${t.id}|${p}|${wi}`, 1.06 + r() * 0.04); // +6% to +10%
   }

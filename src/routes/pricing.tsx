@@ -105,7 +105,7 @@ function PriceDetail({ id, kind, week }: { id: string; kind: ItemKind; week: str
   return (
     <>
       <SheetHeader><SheetTitle>{item.name}</SheetTitle></SheetHeader>
-      <div className="grid grid-cols-3 gap-3 mt-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 mt-6">
         {today.map((t) => (
           <Card key={t.p}><CardContent className="py-3">
             <div className="text-xs text-muted-foreground">{PLATFORM_LABEL[t.p]}</div>
@@ -120,8 +120,9 @@ function PriceDetail({ id, kind, week }: { id: string; kind: ItemKind; week: str
             <YAxis tick={{ fontSize: 10 }} width={42} />
             <Tooltip contentStyle={{ fontSize: 12, borderRadius: 6 }} formatter={(v) => `₹${v}`} />
             <Line type="monotone" dataKey="pharmeasy" stroke="var(--chart-1)" strokeWidth={2} dot={false} name="PharmEasy" />
-            <Line type="monotone" dataKey="zepto" stroke="var(--chart-2)" strokeWidth={2} dot={false} name="Zepto" />
-            <Line type="monotone" dataKey="amazon_pharmacy" stroke="var(--chart-3)" strokeWidth={2} dot={false} name="Amazon" />
+            <Line type="monotone" dataKey="tata_1mg" stroke="var(--chart-2)" strokeWidth={2} dot={false} name="Tata 1mg" />
+            <Line type="monotone" dataKey="zepto" stroke="var(--chart-3)" strokeWidth={2} dot={false} name="Zepto" />
+            <Line type="monotone" dataKey="amazon_pharmacy" stroke="var(--chart-4)" strokeWidth={2} dot={false} name="Amazon" />
           </LineChart>
         </ResponsiveContainer>
       </div>

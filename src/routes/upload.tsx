@@ -14,9 +14,10 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/upload")({ component: UploadPage });
 
 function UploadPage() {
-  const latestPerPlatform: Record<Platform, string> = {
-    pharmeasy: "", zepto: "", amazon_pharmacy: "",
-  };
+  const latestPerPlatform = PLATFORMS.reduce(
+    (acc, p) => ({ ...acc, [p]: "" }),
+    {} as Record<Platform, string>,
+  );
   uploads.forEach((u) => {
     if (!latestPerPlatform[u.platform] || u.uploadedAt > latestPerPlatform[u.platform]) {
       latestPerPlatform[u.platform] = u.uploadedAt;
@@ -26,7 +27,7 @@ function UploadPage() {
   return (
     <div>
       <PageHeader title="Upload" subtitle="Weekly CSV ingestion per platform" />
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
         {PLATFORMS.map((p) => (
           <DropZone key={p} platform={p} lastUpload={latestPerPlatform[p]} />
         ))}

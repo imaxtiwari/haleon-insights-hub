@@ -38,7 +38,7 @@ function MarketSharePage() {
   return (
     <div>
       <PageHeader title="Market share & fair share" />
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
         {totalsPerPlatform.map((t) => (
           <Card key={t.p}>
             <CardHeader className="pb-1"><CardTitle className="text-sm">{PLATFORM_LABEL[t.p]}</CardTitle></CardHeader>

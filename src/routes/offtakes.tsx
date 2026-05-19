@@ -121,9 +121,9 @@ function OfftakesPage() {
               <YAxis tick={{ fontSize: 10 }} tickFormatter={(v) => formatINR(v as number)} width={70} />
               <Tooltip contentStyle={{ fontSize: 12, borderRadius: 6 }} formatter={(v) => formatINR(v as number)} />
               <Legend wrapperStyle={{ fontSize: 11 }} />
-              <Bar dataKey="PharmEasy" fill="var(--chart-1)" />
-              <Bar dataKey="Zepto Pharmacy" fill="var(--chart-2)" />
-              <Bar dataKey="Amazon Pharmacy" fill="var(--chart-3)" />
+              {PLATFORMS.map((p, i) => (
+                <Bar key={p} dataKey={PLATFORM_LABEL[p]} fill={`var(--chart-${i + 1})`} />
+              ))}
             </BarChart>
           </ResponsiveContainer>
         </CardContent>
