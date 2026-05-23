@@ -277,19 +277,20 @@ export const competitorSkus: CompetitorSKU[] = [
 ];
 
 export const brandKeywords: Record<string, string[]> = {
-  paste:       ["sensitive toothpaste", "sensodyne", "toothpaste for sensitive teeth", "tooth pain toothpaste", "whitening toothpaste"],
-  brush:       ["sensodyne toothbrush", "sensitive toothbrush", "deep clean toothbrush"],
-  parodontax:  ["parodontax", "bleeding gums toothpaste", "gum care toothpaste"],
-  pronamel:    ["pronamel", "enamel protection toothpaste", "acid erosion toothpaste"],
-  mouthwash:   ["sensodyne mouthwash", "mouthwash for sensitive teeth"],
+  // Keywords match the Haleon_Visibility_RawData.xlsx "raw data" sheet exactly
+  paste:       ["Paste", "Sensitivity", "Sensodyne", "Toothpaste"],
+  brush:       ["Brush", "Gentle brush", "Sensodyne", "Toothbrush", "sensitivity"],
+  parodontax:  ["Gum care", "Paste", "Toothpaste"],
+  pronamel:    ["paste", "pronamel", "sensitivity", "sensodyne", "toothpaste"],
+  mouthwash:   ["Listerine", "Mouthwash", "sensodyne", "sensodyne mouthwash"],
   polident:    ["polident", "denture adhesive", "denture fixative cream"],
-  crocin:      ["crocin", "paracetamol tablet", "fever tablet", "headache medicine", "body pain relief"],
-  iodex:       ["iodex", "pain relief balm", "muscle pain relief", "joint pain gel"],
-  voltaren:    ["voltaren", "diclofenac gel", "knee pain gel", "back pain relief gel"],
-  centrum:     ["centrum", "multivitamin tablet", "daily vitamin supplement", "centrum women", "centrum men"],
-  ostocalcium: ["ostocalcium", "calcium supplement", "calcium chewable"],
-  eno:         ["eno", "antacid", "acidity relief", "gas relief", "eno lemon"],
-  otrivin:     ["otrivin", "nasal spray", "blocked nose relief", "nasal decongestant"],
+  crocin:      ["Dolo", "Pain Killer", "Pain Relief", "Paracetamol", "cough syrup"],
+  iodex:       ["Balm", "Pain relief", "Relief Spray"],
+  voltaren:    ["pain relief"],
+  centrum:     ["Bone Health", "Multivitamin", "Recharge", "Vitamins", "calcium"],
+  ostocalcium: ["Health supplement", "Multivitamin", "Vitamin D", "calcium", "vitamins"],
+  eno:         ["Acidity", "Antacid", "Digestion", "Eno", "Indigestion"],
+  otrivin:     ["blocked nose", "nasal spray"],
 };
 
 // --- Deterministic RNG ---

@@ -12,8 +12,8 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as VisibilityRouteImport } from './routes/visibility'
 import { Route as UploadRouteImport } from './routes/upload'
 import { Route as SnapshotRouteImport } from './routes/snapshot'
-import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as PurchaseOrdersRouteImport } from './routes/purchase-orders'
+import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as OfftakesRouteImport } from './routes/offtakes'
 import { Route as MarketShareRouteImport } from './routes/market-share'
 import { Route as LoginRouteImport } from './routes/login'
@@ -37,14 +37,14 @@ const SnapshotRoute = SnapshotRouteImport.update({
   path: '/snapshot',
   getParentRoute: () => rootRouteImport,
 } as any)
-const PricingRoute = PricingRouteImport.update({
-  id: '/pricing',
-  path: '/pricing',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const PurchaseOrdersRoute = PurchaseOrdersRouteImport.update({
   id: '/purchase-orders',
   path: '/purchase-orders',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PricingRoute = PricingRouteImport.update({
+  id: '/pricing',
+  path: '/pricing',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OfftakesRoute = OfftakesRouteImport.update({
@@ -113,7 +113,6 @@ export interface FileRoutesByTo {
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/purchase-orders': typeof PurchaseOrdersRoute
   '/': typeof IndexRoute
   '/brand-health': typeof BrandHealthRoute
   '/digital-spends': typeof DigitalSpendsRoute
@@ -122,6 +121,7 @@ export interface FileRoutesById {
   '/market-share': typeof MarketShareRoute
   '/offtakes': typeof OfftakesRoute
   '/pricing': typeof PricingRoute
+  '/purchase-orders': typeof PurchaseOrdersRoute
   '/snapshot': typeof SnapshotRoute
   '/upload': typeof UploadRoute
   '/visibility': typeof VisibilityRoute
@@ -209,18 +209,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SnapshotRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/pricing': {
-      id: '/pricing'
-      path: '/pricing'
-      fullPath: '/pricing'
-      preLoaderRoute: typeof PricingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/purchase-orders': {
       id: '/purchase-orders'
       path: '/purchase-orders'
       fullPath: '/purchase-orders'
       preLoaderRoute: typeof PurchaseOrdersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pricing': {
+      id: '/pricing'
+      path: '/pricing'
+      fullPath: '/pricing'
+      preLoaderRoute: typeof PricingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/offtakes': {
@@ -251,18 +251,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ListingsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/brand-health': {
-      id: '/brand-health'
-      path: '/brand-health'
-      fullPath: '/brand-health'
-      preLoaderRoute: typeof BrandHealthRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/digital-spends': {
       id: '/digital-spends'
       path: '/digital-spends'
       fullPath: '/digital-spends'
       preLoaderRoute: typeof DigitalSpendsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/brand-health': {
+      id: '/brand-health'
+      path: '/brand-health'
+      fullPath: '/brand-health'
+      preLoaderRoute: typeof BrandHealthRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
