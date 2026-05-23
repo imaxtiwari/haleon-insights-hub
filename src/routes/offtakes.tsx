@@ -4,10 +4,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useState, useMemo } from "react";
-import { brands, categories, skus, PLATFORMS, PLATFORM_LABEL, weeks, prevWeek, deltaPct, type Platform } from "@/lib/mock-data";
+import { brands, categories, skus, PLATFORMS, PLATFORM_LABEL, periods, prevPeriod, deltaPct, type Platform } from "@/lib/mock-data";
 import { fetchOfftakes } from "@/lib/api/queries";
-import { useWeek } from "@/lib/week-context";
-import { formatINR, formatNum, formatDelta } from "@/lib/format";
+import { usePeriod } from "@/lib/period-context";
+import { formatINR, formatNum, formatDelta, fmtPeriod, fmtPeriodShort } from "@/lib/format";
 import { ArrowDownRight, ArrowUpRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { BarChart, Bar, LineChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis, Legend } from "recharts";
@@ -17,9 +17,14 @@ export const Route = createFileRoute("/offtakes")({
   component: OfftakesPage,
 });
 
+// Helper: match a row to a period
+function mp(rowPeriod: string | undefined, weekEnding: string, period: string) {
+  return (rowPeriod ?? weekEnding.slice(0, 7)) === period;
+}
+
 function OfftakesPage() {
   const offtakes = Route.useLoaderData();
-  const { week } = useWeek();
+  const { period } = usePeriod();
   const [brandId, setBrandId] = useState<string>("all");
   const [platform, setPlatform] = useState<Platform | "all">("all");
   const [categoryId, setCategoryId] = useState<string>("all");
@@ -32,29 +37,33 @@ function OfftakesPage() {
 
   const plats: Platform[] = platform === "all" ? PLATFORMS : [platform];
 
-  const currWeekRows = offtakes.filter((o) => o.weekEnding === week && filteredSkus.some((s) => s.id === o.skuId) && plats.includes(o.platform));
-  const prev = prevWeek(week);
-  const prevWeekRows = prev ? offtakes.filter((o) => o.weekEnding === prev && filteredSkus.some((s) => s.id === o.skuId) && plats.includes(o.platform)) : [];
+  const currRows = offtakes.filter((o) => mp(o.period, o.weekEnding, period) && filteredSkus.some((s) => s.id === o.skuId) && plats.includes(o.platform));
+  const prev = prevPeriod(period);
+  const prevRows = prev ? offtakes.filter((o) => mp(o.period, o.weekEnding, prev) && filteredSkus.some((s) => s.id === o.skuId) && plats.includes(o.platform)) : [];
 
-  const totalUnits = currWeekRows.reduce((a, r) => a + r.units, 0);
-  const totalGMV = currWeekRows.reduce((a, r) => a + r.gmv, 0);
-  const prevTotalGMV = prevWeekRows.reduce((a, r) => a + r.gmv, 0);
-  const last4 = weeks.slice(-5, -1).flatMap((w) => offtakes.filter((o) => o.weekEnding === w && filteredSkus.some((s) => s.id === o.skuId) && plats.includes(o.platform)));
-  const avg4 = last4.reduce((a, r) => a + r.gmv, 0) / 4;
+  const totalUnits   = currRows.reduce((a, r) => a + r.units, 0);
+  const totalGMV     = currRows.reduce((a, r) => a + r.gmv, 0);
+  const prevTotalGMV = prevRows.reduce((a, r) => a + r.gmv, 0);
+
+  const last4Periods = periods.slice(-5, -1);
+  const last4GMV     = last4Periods.flatMap((per) =>
+    offtakes.filter((o) => mp(o.period, o.weekEnding, per) && filteredSkus.some((s) => s.id === o.skuId) && plats.includes(o.platform))
+  ).reduce((a, r) => a + r.gmv, 0);
+  const avg4 = last4Periods.length ? last4GMV / last4Periods.length : 0;
 
   const kpis = [
     { k: "Total units", v: formatNum(totalUnits) },
     { k: "Total GMV", v: formatINR(totalGMV) },
-    { k: "vs last week", v: formatDelta(deltaPct(totalGMV, prevTotalGMV)), delta: deltaPct(totalGMV, prevTotalGMV) },
-    { k: "vs 4-week avg", v: formatDelta(deltaPct(totalGMV, avg4)), delta: deltaPct(totalGMV, avg4) },
+    { k: "vs last month", v: formatDelta(deltaPct(totalGMV, prevTotalGMV)), delta: deltaPct(totalGMV, prevTotalGMV) },
+    { k: "vs 4-month avg", v: formatDelta(deltaPct(totalGMV, avg4)), delta: deltaPct(totalGMV, avg4) },
   ];
 
   return (
     <div>
       <PageHeader title="Offtake tracking" />
       <Card className="mb-4"><CardContent className="flex flex-wrap items-center gap-3 py-3">
-        <FilterSelect label="Brand" value={brandId} onChange={setBrandId} options={[{ id: "all", name: "All brands" }, ...brands]} />
-        <FilterSelect label="Platform" value={platform} onChange={(v) => setPlatform(v as Platform | "all")} options={[{ id: "all", name: "All platforms" }, ...PLATFORMS.map((p) => ({ id: p, name: PLATFORM_LABEL[p] }))]} />
+        <FilterSelect label="Brand"    value={brandId}    onChange={setBrandId}    options={[{ id: "all", name: "All brands" }, ...brands]} />
+        <FilterSelect label="Platform" value={platform}   onChange={(v) => setPlatform(v as Platform | "all")} options={[{ id: "all", name: "All platforms" }, ...PLATFORMS.map((p) => ({ id: p, name: PLATFORM_LABEL[p] }))]} />
         <FilterSelect label="Category" value={categoryId} onChange={setCategoryId} options={[{ id: "all", name: "All categories" }, ...categories]} />
       </CardContent></Card>
 
@@ -77,22 +86,28 @@ function OfftakesPage() {
                 <TableHead>Platform</TableHead>
                 <TableHead className="text-right">Units</TableHead>
                 <TableHead className="text-right">GMV</TableHead>
-                <TableHead className="text-right">WoW Δ</TableHead>
-                <TableHead className="w-32">4-week trend</TableHead>
+                <TableHead className="text-right">MoM Δ</TableHead>
+                <TableHead className="w-32">4-month trend</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredSkus.flatMap((s) => plats.map((p) => {
-                const r = offtakes.find((o) => o.skuId === s.id && o.platform === p && o.weekEnding === week);
-                const pr = prev && offtakes.find((o) => o.skuId === s.id && o.platform === p && o.weekEnding === prev);
-                const d = r && pr ? deltaPct(r.units, pr.units) : 0;
-                const spark = weeks.slice(-4).map((w) => ({ w, units: offtakes.find((o) => o.skuId === s.id && o.platform === p && o.weekEnding === w)?.units ?? 0 }));
+                const rRows  = offtakes.filter((o) => o.skuId === s.id && o.platform === p && mp(o.period, o.weekEnding, period));
+                const prRows = prev ? offtakes.filter((o) => o.skuId === s.id && o.platform === p && mp(o.period, o.weekEnding, prev)) : [];
+                const rUnits = rRows.reduce((a, r) => a + r.units, 0);
+                const rGMV   = rRows.reduce((a, r) => a + r.gmv, 0);
+                const prUnits = prRows.reduce((a, r) => a + r.units, 0);
+                const d = rUnits && prUnits ? deltaPct(rUnits, prUnits) : 0;
+                const spark = periods.slice(-4).map((per) => ({
+                  w: fmtPeriodShort(per),
+                  units: offtakes.filter((o) => o.skuId === s.id && o.platform === p && mp(o.period, o.weekEnding, per)).reduce((a, r) => a + r.units, 0),
+                }));
                 return (
                   <TableRow key={`${s.id}-${p}`} className="h-9">
                     <TableCell className="font-medium text-xs">{s.name}</TableCell>
                     <TableCell className="text-xs text-muted-foreground">{PLATFORM_LABEL[p]}</TableCell>
-                    <TableCell className="text-right tabular-nums">{formatNum(r?.units ?? 0)}</TableCell>
-                    <TableCell className="text-right tabular-nums">{formatINR(r?.gmv ?? 0)}</TableCell>
+                    <TableCell className="text-right tabular-nums">{formatNum(rUnits)}</TableCell>
+                    <TableCell className="text-right tabular-nums">{formatINR(rGMV)}</TableCell>
                     <TableCell className={cn("text-right tabular-nums text-xs flex items-center justify-end gap-0.5 h-9", d >= 0 ? "text-success" : "text-destructive")}>
                       {d >= 0 ? <ArrowUpRight className="size-3" /> : <ArrowDownRight className="size-3" />}{formatDelta(d)}
                     </TableCell>
@@ -112,13 +127,15 @@ function OfftakesPage() {
       </Card>
 
       <Card className="mt-6">
-        <CardHeader><CardTitle className="text-base">Brand GMV by platform · {week}</CardTitle></CardHeader>
+        <CardHeader><CardTitle className="text-base">Brand GMV by platform · {fmtPeriod(period)}</CardTitle></CardHeader>
         <CardContent className="h-72">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={brands.map((b) => {
               const row: Record<string, string | number> = { brand: b.name };
               PLATFORMS.forEach((p) => {
-                row[PLATFORM_LABEL[p]] = offtakes.filter((o) => o.weekEnding === week && o.platform === p && skus.find((s) => s.id === o.skuId)?.brandId === b.id).reduce((a, r) => a + r.gmv, 0);
+                row[PLATFORM_LABEL[p]] = offtakes
+                  .filter((o) => mp(o.period, o.weekEnding, period) && o.platform === p && skus.find((s) => s.id === o.skuId)?.brandId === b.id)
+                  .reduce((a, r) => a + r.gmv, 0);
               });
               return row;
             })}>

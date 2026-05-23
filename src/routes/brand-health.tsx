@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useMemo, useState } from "react";
 import { brands, PLATFORMS, PLATFORM_LABEL, visibilityScore, listingScore, priceCompetitivenessScore, marketShareScore, overallBrandHealth, type Platform, type PriceRow } from "@/lib/mock-data";
 import { fetchOfftakes, fetchListings, fetchVisibility, fetchPrices, fetchFairShares, toPriceRows } from "@/lib/api/queries";
-import { useWeek } from "@/lib/week-context";
+import { usePeriod } from "@/lib/period-context";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/brand-health")({
@@ -33,7 +33,7 @@ function BrandHealthPage() {
     [fairShares],
   );
   const scoreData = useMemo(() => ({ offtakes, listings, visibility, prices, fairShares: fsMap }), [offtakes, listings, visibility, prices, fsMap]);
-  const { week } = useWeek();
+  const { period } = usePeriod();
   const [platform, setPlatform] = useState<Platform | "all">("all");
   return (
     <div>
@@ -65,11 +65,11 @@ function BrandHealthPage() {
             </TableHeader>
             <TableBody>
               {brands.map((b) => {
-                const v = visibilityScore(b.id, platform, week, scoreData.visibility);
-                const l = listingScore(b.id, platform, week, scoreData.listings);
-                const pr = priceCompetitivenessScore(b.id, platform, week, scoreData.prices);
-                const ms = marketShareScore(b.id, platform, week, scoreData.offtakes, scoreData.fairShares);
-                const o = overallBrandHealth(b.id, platform, week, scoreData);
+                const v  = visibilityScore(b.id, platform, period, scoreData.visibility);
+                const l  = listingScore(b.id, platform, period, scoreData.listings);
+                const pr = priceCompetitivenessScore(b.id, platform, period, scoreData.prices);
+                const ms = marketShareScore(b.id, platform, period, scoreData.offtakes, scoreData.fairShares);
+                const o  = overallBrandHealth(b.id, platform, period, scoreData);
                 return (
                   <TableRow key={b.id} className="h-10">
                     <TableCell className="font-medium">{b.name}</TableCell>

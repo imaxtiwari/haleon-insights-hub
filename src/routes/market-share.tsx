@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useMemo, useState } from "react";
 import { brands, PLATFORMS, PLATFORM_LABEL, brandMarketShare, categoryGMV, type Platform } from "@/lib/mock-data";
 import { fetchOfftakes, fetchFairShares, updateFairShare } from "@/lib/api/queries";
-import { useWeek } from "@/lib/week-context";
+import { usePeriod } from "@/lib/period-context";
 import { formatINR } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -23,10 +23,9 @@ type Row = { brandId: string; brandName: string; platform: Platform; ms: number;
 
 function MarketSharePage() {
   const { offtakes, fairShares } = Route.useLoaderData();
-  const { week } = useWeek();
+  const { period } = usePeriod();
   const [platform, setPlatform] = useState<Platform | "all">("all");
 
-  // Local fair-share state — initialised from D1, updated optimistically on blur.
   const [fsMap, setFsMap] = useState<Map<string, number>>(
     () => new Map(fairShares.map((r) => [`${r.brandId}|${r.platform}`, r.targetPct])),
   );
@@ -40,14 +39,14 @@ function MarketSharePage() {
   const allRows: Row[] = useMemo(() => {
     const out: Row[] = [];
     brands.forEach((b) => PLATFORMS.forEach((p) => {
-      const ms = brandMarketShare(b.id, p, week, offtakes);
-      const fs = fsMap.get(`${b.id}|${p}`) ?? 20;
-      const cat = categoryGMV(b.categoryId, p, week, offtakes);
+      const ms  = brandMarketShare(b.id, p, period, offtakes);
+      const fs  = fsMap.get(`${b.id}|${p}`) ?? 20;
+      const cat = categoryGMV(b.categoryId, p, period, offtakes);
       const opp = Math.max(0, ((fs - ms) / 100) * cat);
       out.push({ brandId: b.id, brandName: b.name, platform: p, ms, fs, gap: ms - fs, opp, catGmv: cat });
     }));
     return out.sort((a, b) => b.opp - a.opp);
-  }, [week, offtakes, fsMap]);
+  }, [period, offtakes, fsMap]);
 
   const totalsPerPlatform = PLATFORMS.map((p) => ({
     p, opp: allRows.filter((r) => r.platform === p).reduce((a, r) => a + r.opp, 0),
@@ -55,7 +54,7 @@ function MarketSharePage() {
 
   const rows = platform === "all" ? allRows : allRows.filter((r) => r.platform === platform);
   const showPlatformCol = platform === "all";
-  const filteredTotal = rows.reduce((a, r) => a + r.opp, 0);
+  const filteredTotal   = rows.reduce((a, r) => a + r.opp, 0);
 
   return (
     <div>
@@ -66,7 +65,7 @@ function MarketSharePage() {
             <CardHeader className="pb-1"><CardTitle className="text-sm">{PLATFORM_LABEL[t.p]}</CardTitle></CardHeader>
             <CardContent>
               <div className="text-2xl font-bold tabular-nums">{formatINR(t.opp)}</div>
-              <div className="text-xs text-muted-foreground">Total opportunity (per week)</div>
+              <div className="text-xs text-muted-foreground">Total opportunity (per month)</div>
             </CardContent>
           </Card>
         ))}

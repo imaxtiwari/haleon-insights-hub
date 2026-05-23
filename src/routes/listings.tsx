@@ -4,9 +4,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useState } from "react";
-import { brands, skus, PLATFORMS, PLATFORM_LABEL, prevWeek, type Platform, type ListingRow } from "@/lib/mock-data";
+import { brands, skus, PLATFORMS, PLATFORM_LABEL, prevPeriod, type Platform, type ListingRow } from "@/lib/mock-data";
 import { fetchListings } from "@/lib/api/queries";
-import { useWeek } from "@/lib/week-context";
+import { usePeriod } from "@/lib/period-context";
 import { ChevronDown, ChevronRight } from "lucide-react";
 
 export const Route = createFileRoute("/listings")({
@@ -14,19 +14,23 @@ export const Route = createFileRoute("/listings")({
   component: ListingsPage,
 });
 
-function platformTotals(platform: Platform, week: string, allListings: ListingRow[]) {
-  const rows = allListings.filter((l) => l.platform === platform && l.weekEnding === week);
-  const total = rows.length;
-  const listed = rows.filter((r) => r.status === "listed").length;
+function mp(rowPeriod: string | undefined, weekEnding: string, period: string) {
+  return (rowPeriod ?? weekEnding.slice(0, 7)) === period;
+}
+
+function platformTotals(platform: Platform, period: string, allListings: ListingRow[]) {
+  const rows    = allListings.filter((l) => l.platform === platform && mp(l.period, l.weekEnding, period));
+  const total   = rows.length;
+  const listed  = rows.filter((r) => r.status === "listed").length;
   const unlisted = rows.filter((r) => r.status === "unlisted").length;
-  const oos = rows.filter((r) => r.status === "oos").length;
+  const oos     = rows.filter((r) => r.status === "oos").length;
   return { total, listed, unlisted, oos };
 }
 
 function ListingsPage() {
   const listings = Route.useLoaderData();
-  const { week } = useWeek();
-  const prev = prevWeek(week);
+  const { period } = usePeriod();
+  const prev = prevPeriod(period);
   const [expanded, setExpanded] = useState<string | null>(null);
 
   return (
@@ -34,7 +38,7 @@ function ListingsPage() {
       <PageHeader title="Listing health" />
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
         {PLATFORMS.map((p) => {
-          const t = platformTotals(p, week, listings);
+          const t = platformTotals(p, period, listings);
           return (
             <Card key={p}>
               <CardHeader className="pb-2"><CardTitle className="text-sm">{PLATFORM_LABEL[p]}</CardTitle></CardHeader>
@@ -42,9 +46,9 @@ function ListingsPage() {
                 <div className="text-3xl font-bold tabular-nums">{t.total}</div>
                 <div className="text-xs text-muted-foreground">Total Haleon SKUs tracked</div>
                 <div className="grid grid-cols-3 gap-2 mt-4 text-xs">
-                  <div className="rounded-md bg-success/10 p-2"><div className="text-success font-bold text-base">{t.listed}</div><div>Listed · {((t.listed / t.total) * 100).toFixed(0)}%</div></div>
-                  <div className="rounded-md bg-destructive/10 p-2"><div className="text-destructive font-bold text-base">{t.unlisted}</div><div>Unlisted · {((t.unlisted / t.total) * 100).toFixed(0)}%</div></div>
-                  <div className="rounded-md bg-warning/15 p-2"><div className="text-warning-foreground font-bold text-base">{t.oos}</div><div>OOS · {((t.oos / t.total) * 100).toFixed(0)}%</div></div>
+                  <div className="rounded-md bg-success/10 p-2"><div className="text-success font-bold text-base">{t.listed}</div><div>Listed · {t.total ? ((t.listed / t.total) * 100).toFixed(0) : 0}%</div></div>
+                  <div className="rounded-md bg-destructive/10 p-2"><div className="text-destructive font-bold text-base">{t.unlisted}</div><div>Unlisted · {t.total ? ((t.unlisted / t.total) * 100).toFixed(0) : 0}%</div></div>
+                  <div className="rounded-md bg-warning/15 p-2"><div className="text-warning-foreground font-bold text-base">{t.oos}</div><div>OOS · {t.total ? ((t.oos / t.total) * 100).toFixed(0) : 0}%</div></div>
                 </div>
               </CardContent>
             </Card>
@@ -61,22 +65,22 @@ function ListingsPage() {
                 <TableHead>Brand</TableHead>
                 <TableHead className="text-right">Total SKUs (×4 platforms)</TableHead>
                 <TableHead className="text-right">% Listed</TableHead>
-                <TableHead className="text-right">vs last week</TableHead>
+                <TableHead className="text-right">vs last period</TableHead>
                 <TableHead>Status changes</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {brands.map((b) => {
                 const brandSkuIds = skus.filter((s) => s.brandId === b.id).map((s) => s.id);
-                const rows = listings.filter((l) => brandSkuIds.includes(l.skuId) && l.weekEnding === week);
-                const listed = rows.filter((r) => r.status === "listed").length;
-                const pct = rows.length ? (listed / rows.length) * 100 : 0;
-                const prevRows = prev ? listings.filter((l) => brandSkuIds.includes(l.skuId) && l.weekEnding === prev) : [] as ListingRow[];
-                const prevPct = prevRows.length ? (prevRows.filter((r) => r.status === "listed").length / prevRows.length) * 100 : 0;
+                const rows     = listings.filter((l) => brandSkuIds.includes(l.skuId) && mp(l.period, l.weekEnding, period));
+                const listed   = rows.filter((r) => r.status === "listed").length;
+                const pct      = rows.length ? (listed / rows.length) * 100 : 0;
+                const prevRows = prev ? listings.filter((l) => brandSkuIds.includes(l.skuId) && mp(l.period, l.weekEnding, prev)) : [] as ListingRow[];
+                const prevPct  = prevRows.length ? (prevRows.filter((r) => r.status === "listed").length / prevRows.length) * 100 : 0;
                 const newlyUnlisted: string[] = [];
                 const newlyRelisted: string[] = [];
                 brandSkuIds.forEach((id) => PLATFORMS.forEach((p) => {
-                  const c = rows.find((r) => r.skuId === id && r.platform === p);
+                  const c  = rows.find((r) => r.skuId === id && r.platform === p);
                   const pr = prevRows.find((r) => r.skuId === id && r.platform === p);
                   if (c && pr) {
                     if (c.status !== "listed" && pr.status === "listed") { const n = skus.find((s) => s.id === id)?.name; if (n) newlyUnlisted.push(n); }
@@ -121,8 +125,8 @@ function ListingsPage() {
                                         <Badge
                                           variant="outline"
                                           className={
-                                            row?.status === "listed" ? "border-success/40 text-success bg-success/10 text-[10px]" :
-                                            row?.status === "oos" ? "border-warning/40 text-warning-foreground bg-warning/10 text-[10px]" :
+                                            row?.status === "listed"   ? "border-success/40 text-success bg-success/10 text-[10px]" :
+                                            row?.status === "oos"      ? "border-warning/40 text-warning-foreground bg-warning/10 text-[10px]" :
                                             "border-destructive/40 text-destructive bg-destructive/10 text-[10px]"
                                           }
                                         >

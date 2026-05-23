@@ -1,12 +1,14 @@
 import { createServerFn } from "@tanstack/react-start";
 import type { Platform, OfftakeRow, ListingRow, VisibilityRow, PlatformMetricRow, PriceRow } from "@/lib/mock-data";
 
-// ── New type for D1 prices (unified item_id / item_kind) ─────────────────────
+// ── D1 return types ───────────────────────────────────────────────────────────
+
 export type DbPriceRow = {
   itemId: string;
   itemKind: "sku" | "comp";
   platform: Platform;
   weekEnding: string;
+  period: string;
   price: number;
 };
 
@@ -31,14 +33,15 @@ export type DbUploadRow = {
 export const fetchOfftakes = createServerFn({ method: "GET" }).handler(
   async (): Promise<OfftakeRow[]> => {
     const { env } = await import("cloudflare:workers");
-    type Raw = { sku_id: string; platform: string; week_ending: string; units: number; gmv: number };
+    type Raw = { sku_id: string; platform: string; week_ending: string; period: string | null; units: number; gmv: number };
     const result = (await env.haleon_insights_db
-      .prepare("SELECT sku_id, platform, week_ending, units, gmv FROM offtakes ORDER BY week_ending")
+      .prepare("SELECT sku_id, platform, week_ending, period, units, gmv FROM offtakes ORDER BY coalesce(period, week_ending)")
       .all()) as D1Result<Raw>;
     return result.results.map((r) => ({
       skuId: r.sku_id,
       platform: r.platform as Platform,
       weekEnding: r.week_ending,
+      period: r.period ?? r.week_ending.slice(0, 7),
       units: r.units,
       gmv: r.gmv,
     }));
@@ -48,14 +51,15 @@ export const fetchOfftakes = createServerFn({ method: "GET" }).handler(
 export const fetchListings = createServerFn({ method: "GET" }).handler(
   async (): Promise<ListingRow[]> => {
     const { env } = await import("cloudflare:workers");
-    type Raw = { sku_id: string; platform: string; week_ending: string; status: string };
+    type Raw = { sku_id: string; platform: string; week_ending: string; period: string | null; status: string };
     const result = (await env.haleon_insights_db
-      .prepare("SELECT sku_id, platform, week_ending, status FROM listings ORDER BY week_ending")
+      .prepare("SELECT sku_id, platform, week_ending, period, status FROM listings ORDER BY coalesce(period, week_ending)")
       .all()) as D1Result<Raw>;
     return result.results.map((r) => ({
       skuId: r.sku_id,
       platform: r.platform as Platform,
       weekEnding: r.week_ending,
+      period: r.period ?? r.week_ending.slice(0, 7),
       status: r.status as ListingRow["status"],
     }));
   },
@@ -64,15 +68,16 @@ export const fetchListings = createServerFn({ method: "GET" }).handler(
 export const fetchPrices = createServerFn({ method: "GET" }).handler(
   async (): Promise<DbPriceRow[]> => {
     const { env } = await import("cloudflare:workers");
-    type Raw = { item_id: string; item_kind: string; platform: string; week_ending: string; price: number };
+    type Raw = { item_id: string; item_kind: string; platform: string; week_ending: string; period: string | null; price: number };
     const result = (await env.haleon_insights_db
-      .prepare("SELECT item_id, item_kind, platform, week_ending, price FROM prices ORDER BY week_ending")
+      .prepare("SELECT item_id, item_kind, platform, week_ending, period, price FROM prices ORDER BY coalesce(period, week_ending)")
       .all()) as D1Result<Raw>;
     return result.results.map((r) => ({
       itemId: r.item_id,
       itemKind: r.item_kind as "sku" | "comp",
       platform: r.platform as Platform,
       weekEnding: r.week_ending,
+      period: r.period ?? r.week_ending.slice(0, 7),
       price: r.price,
     }));
   },
@@ -81,15 +86,16 @@ export const fetchPrices = createServerFn({ method: "GET" }).handler(
 export const fetchVisibility = createServerFn({ method: "GET" }).handler(
   async (): Promise<VisibilityRow[]> => {
     const { env } = await import("cloudflare:workers");
-    type Raw = { brand_id: string; keyword: string; platform: string; week_ending: string; rank: number | null };
+    type Raw = { brand_id: string; keyword: string; platform: string; week_ending: string; period: string | null; rank: number | null };
     const result = (await env.haleon_insights_db
-      .prepare("SELECT brand_id, keyword, platform, week_ending, rank FROM visibility ORDER BY week_ending")
+      .prepare("SELECT brand_id, keyword, platform, week_ending, period, rank FROM visibility ORDER BY coalesce(period, week_ending)")
       .all()) as D1Result<Raw>;
     return result.results.map((r) => ({
       brandId: r.brand_id,
       keyword: r.keyword,
       platform: r.platform as Platform,
       weekEnding: r.week_ending,
+      period: r.period ?? r.week_ending.slice(0, 7),
       rank: r.rank,
     }));
   },
@@ -98,6 +104,7 @@ export const fetchVisibility = createServerFn({ method: "GET" }).handler(
 export const fetchPlatformMetrics = createServerFn({ method: "GET" }).handler(
   async (): Promise<PlatformMetricRow[]> => {
     const { env } = await import("cloudflare:workers");
+    // platform_metrics has no period column — derive from week_ending
     type Raw = { platform: string; week_ending: string; gmv: number; mau: number; aov: number; reach: number };
     const result = (await env.haleon_insights_db
       .prepare("SELECT platform, week_ending, gmv, mau, aov, reach FROM platform_metrics ORDER BY week_ending")
@@ -105,6 +112,7 @@ export const fetchPlatformMetrics = createServerFn({ method: "GET" }).handler(
     return result.results.map((r) => ({
       platform: r.platform as Platform,
       weekEnding: r.week_ending,
+      period: r.week_ending.slice(0, 7),
       gmv: r.gmv,
       mau: r.mau,
       aov: r.aov,
@@ -170,7 +178,7 @@ export const updateFairShare = createServerFn({ method: "POST" })
 export function toPriceRows(dbRows: DbPriceRow[]): PriceRow[] {
   return dbRows.map((r) =>
     r.itemKind === "sku"
-      ? { skuId: r.itemId, platform: r.platform, weekEnding: r.weekEnding, price: r.price }
-      : { competitorSkuId: r.itemId, platform: r.platform, weekEnding: r.weekEnding, price: r.price },
+      ? { skuId: r.itemId, platform: r.platform, weekEnding: r.weekEnding, period: r.period, price: r.price }
+      : { competitorSkuId: r.itemId, platform: r.platform, weekEnding: r.weekEnding, period: r.period, price: r.price },
   );
 }

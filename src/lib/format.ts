@@ -26,3 +26,17 @@ export function fmtDate(d: Date | string): string {
   const date = typeof d === "string" ? new Date(d) : d;
   return date.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "2-digit" });
 }
+
+const MONTHS_SHORT = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+/** "2026-04" → "Apr 2026" */
+export function fmtPeriod(period: string): string {
+  const [yr, mo] = period.split("-");
+  return `${MONTHS_SHORT[Number(mo) - 1]} ${yr}`;
+}
+
+/** "2026-04" → "Apr '26"  (compact label for chart axes) */
+export function fmtPeriodShort(period: string): string {
+  const [yr, mo] = period.split("-");
+  return `${MONTHS_SHORT[Number(mo) - 1]} '${yr.slice(2)}`;
+}

@@ -5,13 +5,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { PLATFORMS, PLATFORM_LABEL, latestWeek, weeks, type Platform } from "@/lib/mock-data";
+import { PLATFORMS, PLATFORM_LABEL, latestWeek, type Platform } from "@/lib/mock-data";
 import { processUpload } from "@/lib/api/upload";
 import { fetchUploads } from "@/lib/api/queries";
-import { fmtDate } from "@/lib/format";
+import { fmtPeriod } from "@/lib/format";
 import { UploadCloud, FileCheck2, ArrowRight, Loader2 } from "lucide-react";
 import { useState, useRef } from "react";
 import { toast } from "sonner";
+import { useRouter } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/upload")({
   loader: () => fetchUploads(),
@@ -32,7 +33,7 @@ function UploadPage() {
 
   return (
     <div>
-      <PageHeader title="Upload" subtitle="Weekly CSV ingestion per platform" />
+      <PageHeader title="Upload" subtitle="Monthly CSV ingestion per platform" />
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
         {PLATFORMS.map((p) => (
           <DropZone key={p} platform={p} lastUpload={latestPerPlatform[p]} />
@@ -45,7 +46,7 @@ function UploadPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Week ending</TableHead>
+                <TableHead>Period</TableHead>
                 <TableHead>Platform</TableHead>
                 <TableHead>Uploaded by</TableHead>
                 <TableHead className="text-right">Rows</TableHead>
@@ -56,7 +57,7 @@ function UploadPage() {
             <TableBody>
               {uploads.map((u) => (
                 <TableRow key={u.id} className="h-9">
-                  <TableCell className="font-medium">{fmtDate(u.weekEnding)}</TableCell>
+                  <TableCell className="font-medium">{fmtPeriod(u.weekEnding.slice(0, 7))}</TableCell>
                   <TableCell>{PLATFORM_LABEL[u.platform]}</TableCell>
                   <TableCell className="text-muted-foreground">{u.uploadedBy}</TableCell>
                   <TableCell className="text-right tabular-nums">{u.rowCount.toLocaleString("en-IN")}</TableCell>
@@ -81,6 +82,7 @@ function DropZone({ platform, lastUpload }: { platform: Platform; lastUpload: st
   const [fileName, setFileName] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const router = useRouter();
 
   const handleFile = (f: File) => {
     setFileName(f.name);
@@ -95,10 +97,13 @@ function DropZone({ platform, lastUpload }: { platform: Platform; lastUpload: st
     try {
       const csvText = await file.text();
       const result = await processUpload({ data: { csvText, platform, weekEnding: latestWeek } });
+      const parts = [`${result.committed} rows saved`, `${result.skipped} skipped`];
+      if (result.autoCreated > 0) parts.push(`${result.autoCreated} new SKUs created`);
       toast.success(`${PLATFORM_LABEL[platform]} upload committed`, {
-        description: `${result.committed} rows saved · ${result.skipped} skipped`,
+        description: parts.join(" · "),
         icon: <FileCheck2 className="size-4" />,
       });
+      await router.invalidate();
     } catch (e) {
       toast.error("Upload failed", { description: e instanceof Error ? e.message : "Unknown error" });
     }
@@ -143,8 +148,8 @@ function DropZone({ platform, lastUpload }: { platform: Platform; lastUpload: st
         <DialogContent>
           <DialogHeader><DialogTitle>Overwrite existing upload?</DialogTitle></DialogHeader>
           <p className="text-sm text-muted-foreground">
-            An upload already exists for {PLATFORM_LABEL[platform]} · {fmtDate(weeks[weeks.length - 1])}. Replacing it
-            will overwrite all derived metrics for that week.
+            An upload already exists for {PLATFORM_LABEL[platform]}. Replacing it
+            will overwrite all derived metrics for that period.
           </p>
           <DialogFooter>
             <Button variant="outline" onClick={() => setStage("idle")}>Cancel</Button>

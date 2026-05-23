@@ -7,10 +7,10 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useState } from "react";
-import { skus, competitorSkus, brands, categories, PLATFORMS, PLATFORM_LABEL, weeks, prevWeek, deltaPct, type Platform } from "@/lib/mock-data";
+import { skus, competitorSkus, brands, categories, PLATFORMS, PLATFORM_LABEL, periods, prevPeriod, deltaPct, type Platform } from "@/lib/mock-data";
 import { fetchPrices, type DbPriceRow } from "@/lib/api/queries";
-import { useWeek } from "@/lib/week-context";
-import { formatDelta, fmtDate } from "@/lib/format";
+import { usePeriod } from "@/lib/period-context";
+import { formatDelta, fmtPeriodShort } from "@/lib/format";
 import { ArrowDown, ArrowUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { LineChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
@@ -22,17 +22,21 @@ export const Route = createFileRoute("/pricing")({
 
 type ItemKind = "sku" | "comp";
 
+function mp(rowPeriod: string | undefined, weekEnding: string, period: string) {
+  return (rowPeriod ?? weekEnding.slice(0, 7)) === period;
+}
+
 function PricingPage() {
   const priceRows = Route.useLoaderData();
-  const { week } = useWeek();
+  const { period } = usePeriod();
   const [brandId, setBrandId] = useState("all");
   const [categoryId, setCategoryId] = useState("all");
 
-  const activeBrand = brands.find((b) => b.id === brandId);
-  const activeCategoryId = categoryId;
-  const activeCategory = categories.find((c) => c.id === activeCategoryId);
-  const brandLabel = activeBrand?.name ?? "all brands";
-  const categoryLabel = activeCategory?.name ?? "all categories";
+  const activeBrand       = brands.find((b) => b.id === brandId);
+  const activeCategoryId  = categoryId;
+  const activeCategory    = categories.find((c) => c.id === activeCategoryId);
+  const brandLabel        = activeBrand?.name ?? "all brands";
+  const categoryLabel     = activeCategory?.name ?? "all categories";
 
   function handleBrandChange(val: string) {
     setBrandId(val);
@@ -69,21 +73,21 @@ function PricingPage() {
           <TabsTrigger value="comp">Competitor SKUs</TabsTrigger>
         </TabsList>
         <TabsContent value="haleon">
-          <PriceTable priceRows={priceRows} kind="sku" week={week} brandId={brandId} categoryId={activeCategoryId} brandLabel={brandLabel} categoryLabel={categoryLabel} />
+          <PriceTable priceRows={priceRows} kind="sku"  period={period} brandId={brandId} categoryId={activeCategoryId} brandLabel={brandLabel} categoryLabel={categoryLabel} />
         </TabsContent>
         <TabsContent value="comp">
-          <PriceTable priceRows={priceRows} kind="comp" week={week} brandId={brandId} categoryId={activeCategoryId} brandLabel={brandLabel} categoryLabel={categoryLabel} />
+          <PriceTable priceRows={priceRows} kind="comp" period={period} brandId={brandId} categoryId={activeCategoryId} brandLabel={brandLabel} categoryLabel={categoryLabel} />
         </TabsContent>
       </Tabs>
     </div>
   );
 }
 
-type PriceTableProps = { priceRows: DbPriceRow[]; kind: ItemKind; week: string; brandId: string; categoryId: string; brandLabel: string; categoryLabel: string };
+type PriceTableProps = { priceRows: DbPriceRow[]; kind: ItemKind; period: string; brandId: string; categoryId: string; brandLabel: string; categoryLabel: string };
 
-function PriceTable({ priceRows, kind, week, brandId, categoryId, brandLabel, categoryLabel }: PriceTableProps) {
+function PriceTable({ priceRows, kind, period, brandId, categoryId, brandLabel, categoryLabel }: PriceTableProps) {
   const [openId, setOpenId] = useState<string | null>(null);
-  const prev = prevWeek(week);
+  const prev = prevPeriod(period);
 
   const items: { id: string; name: string }[] = (() => {
     if (kind === "sku") {
@@ -100,10 +104,10 @@ function PriceTable({ priceRows, kind, week, brandId, categoryId, brandLabel, ca
   })();
 
   const rows = items.flatMap((it) => PLATFORMS.map((p) => {
-    const curr = priceRows.find((x) => x.itemId === it.id && x.itemKind === kind && x.platform === p && x.weekEnding === week);
-    const pr = prev ? priceRows.find((x) => x.itemId === it.id && x.itemKind === kind && x.platform === p && x.weekEnding === prev) : null;
-    const change = curr && pr ? deltaPct(curr.price, pr.price) : 0;
-    return { id: it.id, name: it.name, platform: p, curr: curr?.price ?? 0, prev: pr?.price ?? 0, change };
+    const curr   = priceRows.find((x) => x.itemId === it.id && x.itemKind === kind && x.platform === p && mp(x.period, x.weekEnding, period));
+    const prRow  = prev ? priceRows.find((x) => x.itemId === it.id && x.itemKind === kind && x.platform === p && mp(x.period, x.weekEnding, prev)) : null;
+    const change = curr && prRow ? deltaPct(curr.price, prRow.price) : 0;
+    return { id: it.id, name: it.name, platform: p, curr: curr?.price ?? 0, prev: prRow?.price ?? 0, change };
   })).sort((a, b) => Math.abs(b.change) - Math.abs(a.change));
 
   return (
@@ -118,7 +122,7 @@ function PriceTable({ priceRows, kind, week, brandId, categoryId, brandLabel, ca
               <TableHead>SKU</TableHead>
               <TableHead>Platform</TableHead>
               <TableHead className="text-right">Current</TableHead>
-              <TableHead className="text-right">Prior week</TableHead>
+              <TableHead className="text-right">Prior month</TableHead>
               <TableHead className="text-right">% Change</TableHead>
               <TableHead>Flag</TableHead>
             </TableRow>
@@ -133,7 +137,7 @@ function PriceTable({ priceRows, kind, week, brandId, categoryId, brandLabel, ca
                 <TableCell className={cn("text-right tabular-nums font-semibold", r.change >= 0 ? "text-success" : "text-destructive")}>{formatDelta(r.change)}</TableCell>
                 <TableCell>
                   {r.change <= -5 && <Badge variant="destructive" className="text-[10px] gap-1"><ArrowDown className="size-3" />Drop</Badge>}
-                  {r.change >= 5 && <Badge className="text-[10px] gap-1 bg-success text-success-foreground"><ArrowUp className="size-3" />Hike</Badge>}
+                  {r.change >= 5  && <Badge className="text-[10px] gap-1 bg-success text-success-foreground"><ArrowUp className="size-3" />Hike</Badge>}
                 </TableCell>
               </TableRow>
             ))}
@@ -143,27 +147,30 @@ function PriceTable({ priceRows, kind, week, brandId, categoryId, brandLabel, ca
 
       <Sheet open={!!openId} onOpenChange={(o) => !o && setOpenId(null)}>
         <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
-          {openId && <PriceDetail id={openId} kind={kind} week={week} priceRows={priceRows} activeCategoryId={categoryId} />}
+          {openId && <PriceDetail id={openId} kind={kind} period={period} priceRows={priceRows} />}
         </SheetContent>
       </Sheet>
     </Card>
   );
 }
 
-function PriceDetail({ id, kind, week, priceRows, activeCategoryId: _activeCategoryId }: { id: string; kind: ItemKind; week: string; priceRows: DbPriceRow[]; activeCategoryId: string }) {
+function PriceDetail({ id, kind, period, priceRows }: { id: string; kind: ItemKind; period: string; priceRows: DbPriceRow[] }) {
   const item = kind === "sku" ? skus.find((s) => s.id === id) : competitorSkus.find((c) => c.id === id);
   if (!item) return null;
-  const chartData = weeks.map((w) => {
-    const row: Record<string, number | string> = { w: fmtDate(w).slice(0, 6) };
+
+  const chartData = periods.map((per) => {
+    const row: Record<string, number | string> = { w: fmtPeriodShort(per) };
     PLATFORMS.forEach((p) => {
-      const r = priceRows.find((x) => x.itemId === id && x.itemKind === kind && x.platform === p && x.weekEnding === w);
+      const r = priceRows.find((x) => x.itemId === id && x.itemKind === kind && x.platform === p && mp(x.period, x.weekEnding, per));
       row[p] = r?.price ?? 0;
     });
     return row;
   });
+
   const today = PLATFORMS.map((p) => ({
-    p, price: priceRows.find((x) => x.itemId === id && x.itemKind === kind && x.platform === p && x.weekEnding === week)?.price ?? 0,
+    p, price: priceRows.find((x) => x.itemId === id && x.itemKind === kind && x.platform === p && mp(x.period, x.weekEnding, period))?.price ?? 0,
   }));
+
   return (
     <>
       <SheetHeader><SheetTitle>{item.name}</SheetTitle></SheetHeader>
@@ -181,9 +188,9 @@ function PriceDetail({ id, kind, week, priceRows, activeCategoryId: _activeCateg
             <XAxis dataKey="w" tick={{ fontSize: 10 }} />
             <YAxis tick={{ fontSize: 10 }} width={42} />
             <Tooltip contentStyle={{ fontSize: 12, borderRadius: 6 }} formatter={(v) => `₹${v}`} />
-            <Line type="monotone" dataKey="pharmeasy" stroke="var(--chart-1)" strokeWidth={2} dot={false} name="PharmEasy" />
-            <Line type="monotone" dataKey="tata_1mg" stroke="var(--chart-2)" strokeWidth={2} dot={false} name="Tata 1mg" />
-            <Line type="monotone" dataKey="zepto" stroke="var(--chart-3)" strokeWidth={2} dot={false} name="Zepto" />
+            <Line type="monotone" dataKey="pharmeasy"       stroke="var(--chart-1)" strokeWidth={2} dot={false} name="PharmEasy" />
+            <Line type="monotone" dataKey="tata_1mg"        stroke="var(--chart-2)" strokeWidth={2} dot={false} name="Tata 1mg" />
+            <Line type="monotone" dataKey="zepto"           stroke="var(--chart-3)" strokeWidth={2} dot={false} name="Zepto" />
             <Line type="monotone" dataKey="amazon_pharmacy" stroke="var(--chart-4)" strokeWidth={2} dot={false} name="Amazon" />
           </LineChart>
         </ResponsiveContainer>

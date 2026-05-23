@@ -4,8 +4,8 @@ import {
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
-import { useWeek } from "@/lib/week-context";
-import { fmtDate } from "@/lib/format";
+import { usePeriod } from "@/lib/period-context";
+import { fmtPeriod } from "@/lib/format";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -24,7 +24,7 @@ const NAV = [
 export function AppShell({ children }: { children: ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
   const path = useRouterState({ select: (s) => s.location.pathname });
-  const { week, setWeek, weeks } = useWeek();
+  const { period, setPeriod, periods } = usePeriod();
   const navigate = useNavigate();
 
   return (
@@ -74,12 +74,12 @@ export function AppShell({ children }: { children: ReactNode }) {
           <div className="font-semibold text-sm tracking-tight">Haleon E-Pharm Tracker</div>
           <div className="flex-1 flex justify-center">
             <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">Week ending</span>
-              <Select value={week} onValueChange={setWeek}>
-                <SelectTrigger className="h-8 w-[170px] text-xs"><SelectValue /></SelectTrigger>
+              <span className="text-xs text-muted-foreground">Period</span>
+              <Select value={period} onValueChange={setPeriod}>
+                <SelectTrigger className="h-8 w-[150px] text-xs"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {[...weeks].reverse().map((w) => (
-                    <SelectItem key={w} value={w} className="text-xs">{fmtDate(w)}</SelectItem>
+                  {[...periods].reverse().map((p) => (
+                    <SelectItem key={p} value={p} className="text-xs">{fmtPeriod(p)}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>

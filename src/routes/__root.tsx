@@ -5,7 +5,7 @@ import {
 } from "@tanstack/react-router";
 import appCss from "../styles.css?url";
 import { AppShell } from "@/components/app-shell";
-import { WeekProvider } from "@/lib/week-context";
+import { PeriodProvider } from "@/lib/period-context";
 import { Toaster } from "@/components/ui/sonner";
 
 function NotFoundComponent() {
@@ -72,10 +72,10 @@ function RootComponent() {
   const isAuthShell = path === "/login" || path === "/";
   return (
     <QueryClientProvider client={queryClient}>
-      <WeekProvider>
+      <PeriodProvider>
         {isAuthShell ? <Outlet /> : <AppShell><Outlet /></AppShell>}
         <Toaster richColors position="top-right" />
-      </WeekProvider>
+      </PeriodProvider>
     </QueryClientProvider>
   );
 }

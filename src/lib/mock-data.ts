@@ -171,6 +171,24 @@ export const weeks: string[] = (() => {
 })();
 export const latestWeek = weeks[weeks.length - 1];
 
+// --- Periods: last 12 months in YYYY-MM format ---
+export const periods: string[] = (() => {
+  const arr: string[] = [];
+  const now = new Date();
+  for (let i = 11; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    arr.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
+  }
+  return arr;
+})();
+export const latestPeriod = periods[periods.length - 1];
+
+export function prevPeriod(period: string): string | null {
+  const i = periods.indexOf(period);
+  if (i <= 0) return null;
+  return periods[i - 1];
+}
+
 // --- Uploads (history) ---
 export type Upload = {
   id: string;
@@ -202,7 +220,7 @@ export const uploads: Upload[] = (() => {
 })();
 
 // --- Platform metrics ---
-export type PlatformMetricRow = { platform: Platform; weekEnding: string; gmv: number; mau: number; aov: number; reach: number };
+export type PlatformMetricRow = { platform: Platform; weekEnding: string; period?: string; gmv: number; mau: number; aov: number; reach: number };
 function platformBase(p: Platform): { gmv: number; mau: number; aov: number; reach: number } {
   if (p === "pharmeasy") return { gmv: 18_00_00_000, mau: 280_000, aov: 520, reach: 0.28 };
   if (p === "tata_1mg") return { gmv: 16_00_00_000, mau: 250_000, aov: 500, reach: 0.26 };
@@ -220,6 +238,7 @@ export const platformMetrics: PlatformMetricRow[] = (() => {
       out.push({
         platform: p,
         weekEnding: w,
+        period: w.slice(0, 7),
         gmv: Math.round(base.gmv * trend * noise),
         mau: Math.round(base.mau * trend * (0.95 + r() * 0.1)),
         aov: Math.round(base.aov * (0.96 + r() * 0.08)),
@@ -232,7 +251,7 @@ export const platformMetrics: PlatformMetricRow[] = (() => {
 
 // --- Per-brand per-platform per-week offtakes (aggregated to brand) ---
 // We generate at SKU level then expose helpers.
-export type OfftakeRow = { skuId: string; platform: Platform; weekEnding: string; units: number; gmv: number };
+export type OfftakeRow = { skuId: string; platform: Platform; weekEnding: string; period?: string; units: number; gmv: number };
 function brandPlatformBias(brandId: string, p: Platform): number {
   // Some brands skew toward certain platforms.
   const h = (hashStr(brandId + p) % 100) / 100;
@@ -251,7 +270,7 @@ export const offtakes: OfftakeRow[] = (() => {
         const trend = 1 + (i - 6) * 0.01;
         const units = Math.max(50, Math.round(baseUnits * trend * 1000));
         const price = s.mrp * (0.78 + r() * 0.08); // selling price ~ 78–86% of MRP
-        out.push({ skuId: s.id, platform: p, weekEnding: w, units, gmv: Math.round(units * price) });
+        out.push({ skuId: s.id, platform: p, weekEnding: w, period: w.slice(0, 7), units, gmv: Math.round(units * price) });
       });
     });
   });
@@ -259,7 +278,7 @@ export const offtakes: OfftakeRow[] = (() => {
 })();
 
 // --- Listings ---
-export type ListingRow = { skuId: string; platform: Platform; weekEnding: string; status: "listed" | "unlisted" | "oos" };
+export type ListingRow = { skuId: string; platform: Platform; weekEnding: string; period?: string; status: "listed" | "unlisted" | "oos" };
 export const listings: ListingRow[] = (() => {
   const out: ListingRow[] = [];
   skus.forEach((s) => {
@@ -268,7 +287,7 @@ export const listings: ListingRow[] = (() => {
         const r = rngFor(`lst-${s.id}-${p}-${w}`);
         const x = r();
         const status: ListingRow["status"] = x < 0.05 ? "unlisted" : x < 0.1 ? "oos" : "listed";
-        out.push({ skuId: s.id, platform: p, weekEnding: w, status });
+        out.push({ skuId: s.id, platform: p, weekEnding: w, period: w.slice(0, 7), status });
       });
     });
   });
@@ -276,7 +295,7 @@ export const listings: ListingRow[] = (() => {
 })();
 
 // --- Visibility (keyword rank) ---
-export type VisibilityRow = { brandId: string; keyword: string; platform: Platform; weekEnding: string; rank: number | null };
+export type VisibilityRow = { brandId: string; keyword: string; platform: Platform; weekEnding: string; period?: string; rank: number | null };
 export const visibility: VisibilityRow[] = (() => {
   const out: VisibilityRow[] = [];
   Object.entries(brandKeywords).forEach(([brandId, kws]) => {
@@ -290,7 +309,7 @@ export const visibility: VisibilityRow[] = (() => {
           let rank: number | null = Math.max(1, Math.round(anchor + (r() - 0.5) * 8 + (i - 6) * 0.4));
           if (rank > 50) rank = null;
           if (r() < 0.04) rank = null;
-          out.push({ brandId, keyword: kw, platform: p, weekEnding: w, rank });
+          out.push({ brandId, keyword: kw, platform: p, weekEnding: w, period: w.slice(0, 7), rank });
         });
       });
     });
@@ -299,7 +318,7 @@ export const visibility: VisibilityRow[] = (() => {
 })();
 
 // --- Prices (per-SKU, per-competitor) ---
-export type PriceRow = { skuId?: string; competitorSkuId?: string; platform: Platform; weekEnding: string; price: number };
+export type PriceRow = { skuId?: string; competitorSkuId?: string; platform: Platform; weekEnding: string; period?: string; price: number };
 
 function generateForcedShocks(): Map<string, number> {
   // Force ≥8 ≥5% drops and ≥8 ≥5% increases distributed across SKU+platform+week.
@@ -347,6 +366,7 @@ export const prices: PriceRow[] = (() => {
           [it.kind === "sku" ? "skuId" : "competitorSkuId"]: it.id,
           platform: p,
           weekEnding: w,
+          period: w.slice(0, 7),
           price: Math.round(price),
         } as PriceRow);
       });
@@ -374,38 +394,44 @@ export function skuById(id: string) { return skus.find((s) => s.id === id)!; }
 export function brandById(id: string) { return brands.find((b) => b.id === id)!; }
 export function categoryById(id: string) { return categories.find((c) => c.id === id)!; }
 
-export function brandGMV(brandId: string, platform: Platform, week: string, offtakeData?: OfftakeRow[]): number {
+/** Match a data row's time dimension against a YYYY-MM period string. */
+function mp(rowPeriod: string | undefined, weekEnding: string, period: string): boolean {
+  return (rowPeriod ?? weekEnding.slice(0, 7)) === period;
+}
+
+export function brandGMV(brandId: string, platform: Platform, period: string, offtakeData?: OfftakeRow[]): number {
   const data = offtakeData ?? offtakes;
   const brandSkuIds = new Set(skus.filter((s) => s.brandId === brandId).map((s) => s.id));
   return data
-    .filter((o) => o.platform === platform && o.weekEnding === week && brandSkuIds.has(o.skuId))
+    .filter((o) => o.platform === platform && mp(o.period, o.weekEnding, period) && brandSkuIds.has(o.skuId))
     .reduce((a, b) => a + b.gmv, 0);
 }
-export function brandUnits(brandId: string, platform: Platform, week: string, offtakeData?: OfftakeRow[]): number {
+export function brandUnits(brandId: string, platform: Platform, period: string, offtakeData?: OfftakeRow[]): number {
   const data = offtakeData ?? offtakes;
   const brandSkuIds = new Set(skus.filter((s) => s.brandId === brandId).map((s) => s.id));
   return data
-    .filter((o) => o.platform === platform && o.weekEnding === week && brandSkuIds.has(o.skuId))
+    .filter((o) => o.platform === platform && mp(o.period, o.weekEnding, period) && brandSkuIds.has(o.skuId))
     .reduce((a, b) => a + b.units, 0);
 }
-export function categoryGMV(categoryId: string, platform: Platform, week: string, offtakeData?: OfftakeRow[]): number {
+export function categoryGMV(categoryId: string, platform: Platform, period: string, offtakeData?: OfftakeRow[]): number {
   const haleonInCat = brands.filter((b) => b.categoryId === categoryId);
-  const haleonGMV = haleonInCat.reduce((a, b) => a + brandGMV(b.id, platform, week, offtakeData), 0);
-  const r = rngFor(`cat-${categoryId}-${platform}-${week}`);
+  const haleonGMV = haleonInCat.reduce((a, b) => a + brandGMV(b.id, platform, period, offtakeData), 0);
+  const r = rngFor(`cat-${categoryId}-${platform}-${period}`);
   const haleonShare = 0.35 + r() * 0.2;
   return Math.round(haleonGMV / haleonShare);
 }
-export function brandMarketShare(brandId: string, platform: Platform, week: string, offtakeData?: OfftakeRow[]): number {
+export function brandMarketShare(brandId: string, platform: Platform, period: string, offtakeData?: OfftakeRow[]): number {
   const b = brandById(brandId);
-  const cat = categoryGMV(b.categoryId, platform, week, offtakeData);
+  const cat = categoryGMV(b.categoryId, platform, period, offtakeData);
   if (!cat) return 0;
-  return +((brandGMV(brandId, platform, week, offtakeData) / cat) * 100).toFixed(2);
+  return +((brandGMV(brandId, platform, period, offtakeData) / cat) * 100).toFixed(2);
 }
 
 export function deltaPct(curr: number, prev: number): number {
   if (!prev) return 0;
   return +(((curr - prev) / prev) * 100).toFixed(1);
 }
+/** @deprecated prefer prevPeriod for monthly periods */
 export function prevWeek(week: string): string | null {
   const i = weeks.indexOf(week);
   if (i <= 0) return null;
@@ -415,14 +441,14 @@ export function prevWeek(week: string): string | null {
 // ==== Score helpers for /brand-health ====
 // Each accepts an optional data array; falls back to mock data when omitted.
 
-export function visibilityScore(brandId: string, platform: Platform | "all", week: string, visData?: VisibilityRow[]): number {
+export function visibilityScore(brandId: string, platform: Platform | "all", period: string, visData?: VisibilityRow[]): number {
   const data = visData ?? visibility;
   const kws = brandKeywords[brandId] ?? [];
   const plats = platform === "all" ? PLATFORMS : [platform];
   let total = 0, n = 0;
   kws.forEach((kw) => {
     plats.forEach((p) => {
-      const row = data.find((v) => v.brandId === brandId && v.keyword === kw && v.platform === p && v.weekEnding === week);
+      const row = data.find((v) => v.brandId === brandId && v.keyword === kw && v.platform === p && mp(v.period, v.weekEnding, period));
       if (!row) return;
       n++;
       if (row.rank == null) total += 0;
@@ -434,14 +460,14 @@ export function visibilityScore(brandId: string, platform: Platform | "all", wee
   });
   return n ? Math.round(total / n) : 0;
 }
-export function listingScore(brandId: string, platform: Platform | "all", week: string, listData?: ListingRow[]): number {
+export function listingScore(brandId: string, platform: Platform | "all", period: string, listData?: ListingRow[]): number {
   const data = listData ?? listings;
   const sIds = skus.filter((s) => s.brandId === brandId).map((s) => s.id);
   const plats = platform === "all" ? PLATFORMS : [platform];
   let listed = 0, total = 0;
   sIds.forEach((id) => {
     plats.forEach((p) => {
-      const row = data.find((l) => l.skuId === id && l.platform === p && l.weekEnding === week);
+      const row = data.find((l) => l.skuId === id && l.platform === p && mp(l.period, l.weekEnding, period));
       if (!row) return;
       total++;
       if (row.status === "listed") listed++;
@@ -449,14 +475,14 @@ export function listingScore(brandId: string, platform: Platform | "all", week: 
   });
   return total ? Math.round((listed / total) * 100) : 0;
 }
-export function priceCompetitivenessScore(brandId: string, platform: Platform | "all", week: string, priceData?: PriceRow[]): number {
+export function priceCompetitivenessScore(brandId: string, platform: Platform | "all", period: string, priceData?: PriceRow[]): number {
   const data = priceData ?? prices;
   const brandSkus = skus.filter((s) => s.brandId === brandId);
   const plats = platform === "all" ? PLATFORMS : [platform];
   let total = 0, n = 0;
   brandSkus.forEach((s) => {
     plats.forEach((p) => {
-      const pr = data.find((x) => x.skuId === s.id && x.platform === p && x.weekEnding === week);
+      const pr = data.find((x) => x.skuId === s.id && x.platform === p && mp(x.period, x.weekEnding, period));
       if (!pr) return;
       const disc = 1 - pr.price / s.mrp;
       n++;
@@ -468,14 +494,14 @@ export function priceCompetitivenessScore(brandId: string, platform: Platform | 
 export function marketShareScore(
   brandId: string,
   platform: Platform | "all",
-  week: string,
+  period: string,
   offtakeData?: OfftakeRow[],
   fsMap?: Map<string, number>,
 ): number {
   const plats = platform === "all" ? PLATFORMS : [platform];
   let total = 0;
   plats.forEach((p) => {
-    const ms = brandMarketShare(brandId, p, week, offtakeData);
+    const ms = brandMarketShare(brandId, p, period, offtakeData);
     const fs = fsMap ? (fsMap.get(`${brandId}|${p}`) ?? 20) : getFairShare(brandId, p);
     const gap = ms - fs;
     const sc = Math.max(0, Math.min(100, 100 + gap * 5));
@@ -492,12 +518,12 @@ export type ScoreData = {
   fairShares?: Map<string, number>;
 };
 
-export function overallBrandHealth(brandId: string, platform: Platform | "all", week: string, data?: ScoreData): number {
+export function overallBrandHealth(brandId: string, platform: Platform | "all", period: string, data?: ScoreData): number {
   return Math.round(
-    (visibilityScore(brandId, platform, week, data?.visibility) +
-      listingScore(brandId, platform, week, data?.listings) +
-      priceCompetitivenessScore(brandId, platform, week, data?.prices) +
-      marketShareScore(brandId, platform, week, data?.offtakes, data?.fairShares)) /
+    (visibilityScore(brandId, platform, period, data?.visibility) +
+      listingScore(brandId, platform, period, data?.listings) +
+      priceCompetitivenessScore(brandId, platform, period, data?.prices) +
+      marketShareScore(brandId, platform, period, data?.offtakes, data?.fairShares)) /
       4,
   );
 }
