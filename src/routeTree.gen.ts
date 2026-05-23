@@ -13,10 +13,12 @@ import { Route as VisibilityRouteImport } from './routes/visibility'
 import { Route as UploadRouteImport } from './routes/upload'
 import { Route as SnapshotRouteImport } from './routes/snapshot'
 import { Route as PricingRouteImport } from './routes/pricing'
+import { Route as PurchaseOrdersRouteImport } from './routes/purchase-orders'
 import { Route as OfftakesRouteImport } from './routes/offtakes'
 import { Route as MarketShareRouteImport } from './routes/market-share'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ListingsRouteImport } from './routes/listings'
+import { Route as DigitalSpendsRouteImport } from './routes/digital-spends'
 import { Route as BrandHealthRouteImport } from './routes/brand-health'
 import { Route as IndexRouteImport } from './routes/index'
 
@@ -40,6 +42,11 @@ const PricingRoute = PricingRouteImport.update({
   path: '/pricing',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PurchaseOrdersRoute = PurchaseOrdersRouteImport.update({
+  id: '/purchase-orders',
+  path: '/purchase-orders',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const OfftakesRoute = OfftakesRouteImport.update({
   id: '/offtakes',
   path: '/offtakes',
@@ -60,6 +67,11 @@ const ListingsRoute = ListingsRouteImport.update({
   path: '/listings',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DigitalSpendsRoute = DigitalSpendsRouteImport.update({
+  id: '/digital-spends',
+  path: '/digital-spends',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const BrandHealthRoute = BrandHealthRouteImport.update({
   id: '/brand-health',
   path: '/brand-health',
@@ -74,11 +86,13 @@ const IndexRoute = IndexRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/brand-health': typeof BrandHealthRoute
+  '/digital-spends': typeof DigitalSpendsRoute
   '/listings': typeof ListingsRoute
   '/login': typeof LoginRoute
   '/market-share': typeof MarketShareRoute
   '/offtakes': typeof OfftakesRoute
   '/pricing': typeof PricingRoute
+  '/purchase-orders': typeof PurchaseOrdersRoute
   '/snapshot': typeof SnapshotRoute
   '/upload': typeof UploadRoute
   '/visibility': typeof VisibilityRoute
@@ -86,19 +100,23 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/brand-health': typeof BrandHealthRoute
+  '/digital-spends': typeof DigitalSpendsRoute
   '/listings': typeof ListingsRoute
   '/login': typeof LoginRoute
   '/market-share': typeof MarketShareRoute
   '/offtakes': typeof OfftakesRoute
   '/pricing': typeof PricingRoute
+  '/purchase-orders': typeof PurchaseOrdersRoute
   '/snapshot': typeof SnapshotRoute
   '/upload': typeof UploadRoute
   '/visibility': typeof VisibilityRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
+  '/purchase-orders': typeof PurchaseOrdersRoute
   '/': typeof IndexRoute
   '/brand-health': typeof BrandHealthRoute
+  '/digital-spends': typeof DigitalSpendsRoute
   '/listings': typeof ListingsRoute
   '/login': typeof LoginRoute
   '/market-share': typeof MarketShareRoute
@@ -113,11 +131,13 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/brand-health'
+    | '/digital-spends'
     | '/listings'
     | '/login'
     | '/market-share'
     | '/offtakes'
     | '/pricing'
+    | '/purchase-orders'
     | '/snapshot'
     | '/upload'
     | '/visibility'
@@ -125,11 +145,13 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/brand-health'
+    | '/digital-spends'
     | '/listings'
     | '/login'
     | '/market-share'
     | '/offtakes'
     | '/pricing'
+    | '/purchase-orders'
     | '/snapshot'
     | '/upload'
     | '/visibility'
@@ -137,11 +159,13 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/brand-health'
+    | '/digital-spends'
     | '/listings'
     | '/login'
     | '/market-share'
     | '/offtakes'
     | '/pricing'
+    | '/purchase-orders'
     | '/snapshot'
     | '/upload'
     | '/visibility'
@@ -150,11 +174,13 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   BrandHealthRoute: typeof BrandHealthRoute
+  DigitalSpendsRoute: typeof DigitalSpendsRoute
   ListingsRoute: typeof ListingsRoute
   LoginRoute: typeof LoginRoute
   MarketShareRoute: typeof MarketShareRoute
   OfftakesRoute: typeof OfftakesRoute
   PricingRoute: typeof PricingRoute
+  PurchaseOrdersRoute: typeof PurchaseOrdersRoute
   SnapshotRoute: typeof SnapshotRoute
   UploadRoute: typeof UploadRoute
   VisibilityRoute: typeof VisibilityRoute
@@ -188,6 +214,13 @@ declare module '@tanstack/react-router' {
       path: '/pricing'
       fullPath: '/pricing'
       preLoaderRoute: typeof PricingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/purchase-orders': {
+      id: '/purchase-orders'
+      path: '/purchase-orders'
+      fullPath: '/purchase-orders'
+      preLoaderRoute: typeof PurchaseOrdersRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/offtakes': {
@@ -225,6 +258,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BrandHealthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/digital-spends': {
+      id: '/digital-spends'
+      path: '/digital-spends'
+      fullPath: '/digital-spends'
+      preLoaderRoute: typeof DigitalSpendsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -238,11 +278,13 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   BrandHealthRoute: BrandHealthRoute,
+  DigitalSpendsRoute: DigitalSpendsRoute,
   ListingsRoute: ListingsRoute,
   LoginRoute: LoginRoute,
   MarketShareRoute: MarketShareRoute,
   OfftakesRoute: OfftakesRoute,
   PricingRoute: PricingRoute,
+  PurchaseOrdersRoute: PurchaseOrdersRoute,
   SnapshotRoute: SnapshotRoute,
   UploadRoute: UploadRoute,
   VisibilityRoute: VisibilityRoute,

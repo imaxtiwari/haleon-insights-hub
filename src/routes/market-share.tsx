@@ -6,13 +6,16 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useMemo, useState } from "react";
 import { brands, PLATFORMS, PLATFORM_LABEL, brandMarketShare, categoryGMV, type Platform } from "@/lib/mock-data";
-import { fetchOfftakes, fetchFairShares, updateFairShare } from "@/lib/api/queries";
+import { fetchOfftakes, fetchFairShares, fetchMarketShare, updateFairShare } from "@/lib/api/queries";
 import { usePeriod } from "@/lib/period-context";
 import { formatINR } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/market-share")({
-  loader: async () => {
+  loader: async ({ context: _ctx }) => {
+    // period is not yet known at load time (it lives in client context),
+    // so we fetch the latest available period from DB as a hint.
+    // The heavy filtering is done client-side once period is available.
     const [offtakes, fairShares] = await Promise.all([fetchOfftakes(), fetchFairShares()]);
     return { offtakes, fairShares };
   },
@@ -25,6 +28,35 @@ function MarketSharePage() {
   const { offtakes, fairShares } = Route.useLoaderData();
   const { period } = usePeriod();
   const [platform, setPlatform] = useState<Platform | "all">("all");
+
+  // Real market share data fetched per (period, platform) — starts empty, populated on first render
+  const [dbMsRows, setDbMsRows] = useState<Array<{ brandId: string; platform: Platform; sharePct: number }>>([]);
+  const [dbPeriod, setDbPeriod] = useState<string>("");
+
+  // Fetch from DB whenever period changes
+  useMemo(() => {
+    if (!period) return;
+    if (period === dbPeriod) return;
+    fetchMarketShare({ data: { period, platform: "all" } })
+      .then((rows) => {
+        setDbMsRows(rows);
+        setDbPeriod(period);
+      })
+      .catch(() => {
+        // DB fetch failed — keep using mock data (already the default)
+        setDbMsRows([]);
+        setDbPeriod(period);
+      });
+  }, [period]);
+
+  // Build a lookup: "brandId|platform" → share_pct from DB
+  const dbMsMap = useMemo(() => {
+    const m = new Map<string, number>();
+    dbMsRows.forEach((r) => m.set(`${r.brandId}|${r.platform}`, r.sharePct));
+    return m;
+  }, [dbMsRows]);
+
+  const usingRealData = dbMsRows.length > 0;
 
   const [fsMap, setFsMap] = useState<Map<string, number>>(
     () => new Map(fairShares.map((r) => [`${r.brandId}|${r.platform}`, r.targetPct])),
@@ -39,14 +71,18 @@ function MarketSharePage() {
   const allRows: Row[] = useMemo(() => {
     const out: Row[] = [];
     brands.forEach((b) => PLATFORMS.forEach((p) => {
-      const ms  = brandMarketShare(b.id, p, period, offtakes);
+      // Prefer real DB share%, fall back to mock estimate
+      const ms = dbMsMap.has(`${b.id}|${p}`)
+        ? dbMsMap.get(`${b.id}|${p}`)!
+        : brandMarketShare(b.id, p, period, offtakes);
+
       const fs  = fsMap.get(`${b.id}|${p}`) ?? 20;
       const cat = categoryGMV(b.categoryId, p, period, offtakes);
       const opp = Math.max(0, ((fs - ms) / 100) * cat);
       out.push({ brandId: b.id, brandName: b.name, platform: p, ms, fs, gap: ms - fs, opp, catGmv: cat });
     }));
     return out.sort((a, b) => b.opp - a.opp);
-  }, [period, offtakes, fsMap]);
+  }, [period, offtakes, fsMap, dbMsMap]);
 
   const totalsPerPlatform = PLATFORMS.map((p) => ({
     p, opp: allRows.filter((r) => r.platform === p).reduce((a, r) => a + r.opp, 0),
@@ -59,6 +95,13 @@ function MarketSharePage() {
   return (
     <div>
       <PageHeader title="Market share & fair share" />
+
+      {usingRealData && (
+        <p className="text-xs text-emerald-600 mb-3">
+          ✓ Showing real market share data for {period}
+        </p>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
         {totalsPerPlatform.map((t) => (
           <Card key={t.p}>
@@ -94,7 +137,10 @@ function MarketSharePage() {
               <TableRow>
                 <TableHead>Brand</TableHead>
                 {showPlatformCol && <TableHead>Platform</TableHead>}
-                <TableHead className="text-right">Market Share %</TableHead>
+                <TableHead className="text-right">
+                  Market Share %
+                  {!usingRealData && <span className="ml-1 text-amber-500 text-[10px]">(est.)</span>}
+                </TableHead>
                 <TableHead className="text-right">Fair Share %</TableHead>
                 <TableHead className="text-right">Gap (pp)</TableHead>
                 <TableHead className="text-right">Opportunity</TableHead>

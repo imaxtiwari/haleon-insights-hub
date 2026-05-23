@@ -1,6 +1,6 @@
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import {
-  Upload, LayoutDashboard, Activity, Search, ListChecks, ShoppingCart, PieChart, IndianRupee, LogOut, ChevronLeft, ChevronRight,
+  Upload, LayoutDashboard, Activity, Search, ListChecks, ShoppingCart, PieChart, IndianRupee, Package, TrendingUp, LogOut, ChevronLeft, ChevronRight,
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
@@ -19,6 +19,8 @@ const NAV = [
   { to: "/offtakes", label: "Offtakes", icon: ShoppingCart },
   { to: "/market-share", label: "Market Share", icon: PieChart },
   { to: "/pricing", label: "Pricing", icon: IndianRupee },
+  { to: "/purchase-orders", label: "Purchase Orders", icon: Package },
+  { to: "/digital-spends",  label: "Digital Spends",  icon: TrendingUp },
 ] as const;
 
 export function AppShell({ children }: { children: ReactNode }) {

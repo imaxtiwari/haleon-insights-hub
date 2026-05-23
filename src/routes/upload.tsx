@@ -6,10 +6,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { PLATFORMS, PLATFORM_LABEL, latestWeek, type Platform } from "@/lib/mock-data";
-import { processUpload } from "@/lib/api/upload";
+import { processUpload, processOfftakesUpload } from "@/lib/api/upload";
 import { fetchUploads } from "@/lib/api/queries";
 import { fmtPeriod } from "@/lib/format";
-import { UploadCloud, FileCheck2, ArrowRight, Loader2 } from "lucide-react";
+import { UploadCloud, FileCheck2, ArrowRight, Loader2, ShoppingCart } from "lucide-react";
 import { useState, useRef } from "react";
 import { toast } from "sonner";
 import { useRouter } from "@tanstack/react-router";
@@ -38,6 +38,13 @@ function UploadPage() {
         {PLATFORMS.map((p) => (
           <DropZone key={p} platform={p} lastUpload={latestPerPlatform[p]} />
         ))}
+      </div>
+
+      <div className="mt-6">
+        <h2 className="text-sm font-semibold mb-3 text-muted-foreground uppercase tracking-wide">Invoice-line offtakes</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          <OfftakesUploadCard />
+        </div>
       </div>
 
       <Card className="mt-8">
@@ -76,6 +83,140 @@ function UploadPage() {
     </div>
   );
 }
+
+// ── Offtakes upload card (invoice-line CSV → offtakes table) ─────────────────
+
+function OfftakesUploadCard() {
+  const [stage, setStage] = useState<"idle" | "preview" | "submitting">("idle");
+  const [file, setFile]   = useState<File | null>(null);
+  const [fileName, setFileName] = useState<string | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const router   = useRouter();
+
+  const handleFile = (f: File) => {
+    setFile(f);
+    setFileName(f.name);
+    setStage("preview");
+  };
+
+  async function handleCommit() {
+    if (!file) return;
+    setStage("submitting");
+    try {
+      const csvText = await file.text();
+      const result  = await processOfftakesUpload({ data: { csvText } });
+
+      const parts = [
+        `${result.committed.toLocaleString("en-IN")} SKU-months saved`,
+        `${result.skipped} rows skipped`,
+      ];
+      if (result.unmatched.length > 0) {
+        parts.push(`${result.unmatched.length} unmatched`);
+      }
+
+      if (result.unmatched.length > 0) {
+        toast.warning("Offtakes committed — some SKUs unmatched", {
+          description: (
+            <div>
+              <p className="mb-1">{parts.join(" · ")}</p>
+              <p className="text-xs font-semibold mb-0.5">Unmatched product names:</p>
+              <ul className="text-xs list-disc list-inside space-y-0.5 max-h-32 overflow-y-auto">
+                {result.unmatched.slice(0, 20).map((n) => <li key={n} className="truncate">{n}</li>)}
+                {result.unmatched.length > 20 && <li>…and {result.unmatched.length - 20} more</li>}
+              </ul>
+            </div>
+          ),
+          duration: 12000,
+          icon: <FileCheck2 className="size-4" />,
+        });
+      } else {
+        toast.success("Offtakes committed", {
+          description: parts.join(" · "),
+          icon: <FileCheck2 className="size-4" />,
+        });
+      }
+      await router.invalidate();
+    } catch (e) {
+      toast.error("Upload failed", { description: e instanceof Error ? e.message : "Unknown error" });
+    }
+    setStage("idle");
+    setFile(null);
+    setFileName(null);
+  }
+
+  return (
+    <Card className="overflow-hidden">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm flex items-center gap-2">
+          <ShoppingCart className="size-4 text-muted-foreground" />
+          Amazon Pharmacy — Offtakes CSV
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <p className="text-xs text-muted-foreground mb-3">
+          Upload the invoice-line CSV exported from the Amazon Pharmacy Haleon Sales sheet.
+          Expected columns: <span className="font-mono">product_name, asin, qty, mrp, invoice_date, platform, location, ed_code</span>
+        </p>
+        <div
+          onClick={() => inputRef.current?.click()}
+          onDragOver={(e) => e.preventDefault()}
+          onDrop={(e) => {
+            e.preventDefault();
+            const f = e.dataTransfer.files[0];
+            if (f) handleFile(f);
+          }}
+          className="border-2 border-dashed rounded-md p-6 text-center cursor-pointer hover:border-primary/50 hover:bg-accent/30 transition-colors"
+        >
+          <UploadCloud className="size-7 mx-auto text-muted-foreground" />
+          <p className="mt-2 text-sm font-medium">Drop CSV here</p>
+          <p className="text-xs text-muted-foreground">or click to browse</p>
+          {fileName && stage === "idle" && (
+            <p className="mt-2 text-xs text-primary truncate">{fileName}</p>
+          )}
+        </div>
+        <input
+          ref={inputRef}
+          type="file"
+          accept=".csv"
+          className="hidden"
+          onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
+        />
+      </CardContent>
+
+      {/* Preview + confirm */}
+      <Dialog open={stage === "preview" || stage === "submitting"} onOpenChange={(o) => !o && setStage("idle")}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Upload offtakes — {fileName}</DialogTitle>
+          </DialogHeader>
+          <div className="text-sm text-muted-foreground space-y-2">
+            <p>This will:</p>
+            <ul className="list-disc list-inside space-y-1 text-xs">
+              <li>Match each row to a SKU via ASIN lookup, then fuzzy product-name matching</li>
+              <li>Aggregate qty and GMV by SKU + month, then upsert into the offtakes table</li>
+              <li>Show unmatched product names in the result so you can add missing SKUs</li>
+            </ul>
+            <p className="text-xs pt-1">
+              Platform: <span className="font-semibold">Amazon Pharmacy</span> · Period inferred from <span className="font-mono">invoice_date</span>
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setStage("idle")} disabled={stage === "submitting"}>
+              Cancel
+            </Button>
+            <Button onClick={handleCommit} disabled={stage === "submitting"}>
+              {stage === "submitting"
+                ? <><Loader2 className="size-4 mr-2 animate-spin" />Uploading…</>
+                : "Commit offtakes"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </Card>
+  );
+}
+
+// ── Per-platform drop zone (existing Haleon / legacy CSV format) ──────────────
 
 function DropZone({ platform, lastUpload }: { platform: Platform; lastUpload: string }) {
   const [stage, setStage] = useState<"idle" | "map" | "preview" | "overwrite" | "submitting">("idle");

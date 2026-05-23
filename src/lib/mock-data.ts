@@ -18,6 +18,7 @@ export type SKU = {
   name: string;
   packSize: string;
   mrp: number;
+  internalCode: string;
   ids: Record<Platform, string | null>;
 };
 export type CompetitorSKU = { id: string; brandName: string; name: string; categoryId: string };
@@ -31,72 +32,229 @@ export const categories: Category[] = [
 ];
 
 export const brands: Brand[] = [
-  { id: "sensodyne", name: "Sensodyne", categoryId: "oral" },
-  { id: "crocin", name: "Crocin", categoryId: "pain" },
-  { id: "panadol", name: "Panadol", categoryId: "pain" },
-  { id: "voltaren", name: "Voltaren", categoryId: "pain" },
-  { id: "centrum", name: "Centrum", categoryId: "mvm" },
-  { id: "otrivin", name: "Otrivin", categoryId: "cold" },
-  { id: "eno", name: "ENO", categoryId: "antacid" },
+  { id: "brush",       name: "Sensodyne Brush",    categoryId: "oral" },
+  { id: "centrum",     name: "Centrum",             categoryId: "mvm" },
+  { id: "crocin",      name: "Crocin",              categoryId: "pain" },
+  { id: "eno",         name: "ENO",                 categoryId: "antacid" },
+  { id: "iodex",       name: "Iodex",               categoryId: "pain" },
+  { id: "mouthwash",   name: "Sensodyne Mouthwash", categoryId: "oral" },
+  { id: "ostocalcium", name: "Ostocalcium",          categoryId: "mvm" },
+  { id: "otrivin",     name: "Otrivin",              categoryId: "cold" },
+  { id: "parodontax",  name: "Parodontax",           categoryId: "oral" },
+  { id: "paste",       name: "Sensodyne Paste",      categoryId: "oral" },
+  { id: "polident",    name: "Polident",             categoryId: "oral" },
+  { id: "pronamel",    name: "Pronamel",             categoryId: "oral" },
+  { id: "voltaren",    name: "Voltaren",             categoryId: "pain" },
 ];
 
 export const skus: SKU[] = [
-  // Sensodyne (Oral Care) — 7 SKUs
-  { id: "sk-sen-1", brandId: "sensodyne", name: "Sensodyne Rapid Relief 75g", packSize: "75g", mrp: 220, ids: pIds("PE-SEN1", "TM-SEN1", "ZP-SEN1", "AM-SEN1") },
-  { id: "sk-sen-2", brandId: "sensodyne", name: "Sensodyne Fresh Mint 70g", packSize: "70g", mrp: 165, ids: pIds("PE-SEN2", "TM-SEN2", "ZP-SEN2", "AM-SEN2") },
-  { id: "sk-sen-3", brandId: "sensodyne", name: "Sensodyne Repair & Protect 70g", packSize: "70g", mrp: 240, ids: pIds("PE-SEN3", "TM-SEN3", "ZP-SEN3", "AM-SEN3") },
-  { id: "sk-sen-4", brandId: "sensodyne", name: "Sensodyne Original 70g", packSize: "70g", mrp: 155, ids: pIds("PE-SEN4", "TM-SEN4", "ZP-SEN4", "AM-SEN4") },
-  { id: "sk-sen-5", brandId: "sensodyne", name: "Sensodyne Whitening 70g", packSize: "70g", mrp: 180, ids: pIds("PE-SEN5", "TM-SEN5", "ZP-SEN5", "AM-SEN5") },
-  { id: "sk-sen-6", brandId: "sensodyne", name: "Sensodyne Sensitivity & Gum 75g", packSize: "75g", mrp: 230, ids: pIds("PE-SEN6", "TM-SEN6", "ZP-SEN6", "AM-SEN6") },
-  { id: "sk-sen-7", brandId: "sensodyne", name: "Sensodyne Deep Clean 70g", packSize: "70g", mrp: 175, ids: pIds("PE-SEN7", "TM-SEN7", "ZP-SEN7", "AM-SEN7") },
+  // Sensodyne Brush (Oral Care) — 20 SKUs
+  { id: "ygbbar1", brandId: "brush", name: "SENSODYNE BRUSH SENSITIVE 1BRUSH_REL", packSize: "Basil po1", mrp: 149, internalCode: "YGBBAR1", ids: pIds("YGBBAR1") },
+  { id: "ygbbcr1", brandId: "brush", name: "SENSODYNE BRUSH SENSITIVE 3BRUSH_REL", packSize: "Basil po3", mrp: 399, internalCode: "YGBBCR1", ids: pIds("YGBBCR1") },
+  { id: "ygbbfr1", brandId: "brush", name: "SENSODYNE BRUSH SENSITIVE 4BRUSH_REL", packSize: "Basil po4", mrp: 499, internalCode: "YGBBFR1", ids: pIds("YGBBFR1") },
+  { id: "ygbdar1", brandId: "brush", name: "SENSODYNE BRUSH DEEPCLEAN 1BRUSH_REL", packSize: "DC Po1", mrp: 149, internalCode: "YGBDAR1", ids: pIds("YGBDAR1") },
+  { id: "ygbdbr1", brandId: "brush", name: "SENSODYNE BRUSH DEEPCLEAN 3BRUSH_REL", packSize: "DC Po3", mrp: 399, internalCode: "YGBDBR1", ids: pIds("YGBDBR1") },
+  { id: "ygbpar1", brandId: "brush", name: "SENSODYNE BRUSH EXPERT 1BRUSH_REL", packSize: "Exp Po1", mrp: 149, internalCode: "YGBPAR1", ids: pIds("YGBPAR1") },
+  { id: "ygbpbr1", brandId: "brush", name: "SENSODYNE BRUSH EXPERT 3BRUSH_REL", packSize: "Exp Po3", mrp: 399, internalCode: "YGBPBR1", ids: pIds("YGBPBR1") },
+  { id: "ygbsa00", brandId: "brush", name: "SENSODYNE SENSITIVITY&GUM TB SOFT 12X1", packSize: "S&G po1", mrp: 1199, internalCode: "YGBSA00", ids: pIds("YGBSA00") },
+  { id: "ygbsb00", brandId: "brush", name: "SENSODYNE SENSITIVITY&GUM TB SOFT 12X3", packSize: "S&G po3", mrp: 3199, internalCode: "YGBSB00", ids: pIds("YGBSB00") },
+  { id: "ygbxa00", brandId: "brush", name: "SENSODYNE BRUSH COMPLETE PROTECT 1BRUSH", packSize: "CP Po1", mrp: 149, internalCode: "YGBXA00", ids: pIds("YGBXA00") },
+  { id: "ygbxb00", brandId: "brush", name: "SENSODYNEBRUSH COMPLETE PROTECT 2+1BRUSH", packSize: "CP po3", mrp: 349, internalCode: "YGBXB00", ids: pIds("YGBXB00") },
+  { id: "ygbqf00", brandId: "brush", name: "Aquafresh Clean and Flex Toothbrush", packSize: "Flex po3", mrp: 299, internalCode: "YGBQF00", ids: pIds("YGBQF00") },
+  { id: "ygbqb00", brandId: "brush", name: "Aquafresh Little Teeth Toothbrush - Bunny", packSize: "Bunny", mrp: 149, internalCode: "YGBQB00", ids: pIds("YGBQB00") },
+  { id: "ygbqs00", brandId: "brush", name: "Aquafresh Little Teeth Toothbrush - Shark", packSize: "Shark", mrp: 149, internalCode: "YGBQS00", ids: pIds("YGBQS00") },
+  { id: "ygbqt00", brandId: "brush", name: "Aquafresh Little Teeth Toothbrush - Tiger", packSize: "Tiger", mrp: 149, internalCode: "YGBQT00", ids: pIds("YGBQT00") },
+  { id: "ygbqa00", brandId: "brush", name: "Aquafresh Little Teeth Toothbrush - Alligator", packSize: "Alligator", mrp: 149, internalCode: "YGBQA00", ids: pIds("YGBQA00") },
+  { id: "ygbma00", brandId: "brush", name: "Multicare single", packSize: "Multicare po1", mrp: 179, internalCode: "YGBMA00", ids: pIds("YGBMA00") },
+  { id: "ygbmb00", brandId: "brush", name: "Multicare 2+1", packSize: "Multicare po3", mrp: 349, internalCode: "YGBMB00", ids: pIds("YGBMB00") },
+  { id: "ygbgc00", brandId: "brush", name: "Gentlecare brush 1+1", packSize: "GC po2", mrp: 299, internalCode: "YGBGC00", ids: pIds("YGBGC00") },
+  { id: "ygbeai1", brandId: "brush", name: "SENSODYNE BRUSH ECONOMY 1BRUSH_(12)", packSize: "Eco po12", mrp: 1049, internalCode: "YGBEAI1", ids: pIds("YGBEAI1") },
 
-  // Crocin (Pain Relief) — 6 SKUs
-  { id: "sk-cro-1", brandId: "crocin", name: "Crocin Advance 500mg 15 tabs", packSize: "15 tabs", mrp: 40, ids: pIds("PE-CRO1", "TM-CRO1", "ZP-CRO1", "AM-CRO1") },
-  { id: "sk-cro-2", brandId: "crocin", name: "Crocin Pain Relief 650mg 15 tabs", packSize: "15 tabs", mrp: 65, ids: pIds("PE-CRO2", "TM-CRO2", "ZP-CRO2", "AM-CRO2") },
-  { id: "sk-cro-3", brandId: "crocin", name: "Crocin Cold & Flu Max 10 tabs", packSize: "10 tabs", mrp: 90, ids: pIds("PE-CRO3", "TM-CRO3", "ZP-CRO3", "AM-CRO3") },
-  { id: "sk-cro-4", brandId: "crocin", name: "Crocin Cold Max 10 tabs", packSize: "10 tabs", mrp: 85, ids: pIds("PE-CRO4", "TM-CRO4", "ZP-CRO4", "AM-CRO4") },
-  { id: "sk-cro-5", brandId: "crocin", name: "Crocin Quick Cool Strip 10 tabs", packSize: "10 tabs", mrp: 70, ids: pIds("PE-CRO5", "TM-CRO5", "ZP-CRO5", "AM-CRO5") },
-  { id: "sk-cro-6", brandId: "crocin", name: "Crocin 500mg 20 tabs", packSize: "20 tabs", mrp: 50, ids: pIds("PE-CRO6", "TM-CRO6", "ZP-CRO6", "AM-CRO6") },
+  // Centrum (Multivitamins) — 30 SKUs
+  { id: "ygmad00", brandId: "centrum", name: "CENTRUM SILVER TABLET ADULT 1X30_BOTTLE", packSize: "Adult  30", mrp: 499, internalCode: "YGMAD00", ids: pIds("YGMAD00") },
+  { id: "ygmae00", brandId: "centrum", name: "CENTRUM SILVER TABLET ADULT 1X50_BOTTLE", packSize: "Adult 50", mrp: 749, internalCode: "YGMAE00", ids: pIds("YGMAE00") },
+  { id: "ygmkd00", brandId: "centrum", name: "CENTRUM KIDS GUMMIES 1X30_BOTTLE", packSize: "Kids 30", mrp: 599, internalCode: "YGMKD00", ids: pIds("YGMKD00") },
+  { id: "ygmke00", brandId: "centrum", name: "CENTRUM KIDS GUMMIES 1X50_BOTTLE", packSize: "Kids 50", mrp: 879, internalCode: "YGMKE00", ids: pIds("YGMKE00") },
+  { id: "ygmmd00", brandId: "centrum", name: "CENTRUM MEN TABLET ADULT 1X30_BOTTLE", packSize: "Men 30", mrp: 499, internalCode: "YGMMD00", ids: pIds("YGMMD00") },
+  { id: "ygmme00", brandId: "centrum", name: "CENTRUM MEN TABLET ADULT 1X50_BOTTLE", packSize: "Men 50", mrp: 749, internalCode: "YGMME00", ids: pIds("YGMME00") },
+  { id: "ygmwd00", brandId: "centrum", name: "CENTRUM WOMEN TABLET ADULT 1X30_BOTTLE", packSize: "Women 30", mrp: 499, internalCode: "YGMWD00", ids: pIds("YGMWD00") },
+  { id: "ygmwe00", brandId: "centrum", name: "CENTRUM WOMEN TABLET ADULT 1X50_BOTTLE", packSize: "Women 50", mrp: 749, internalCode: "YGMWE00", ids: pIds("YGMWE00") },
+  { id: "ygmdf00", brandId: "centrum", name: "CENTRUM ADULT DIG GUMMIES 1X30_BOTTLE", packSize: "Dig gummies", mrp: 599, internalCode: "YGMDF00", ids: pIds("YGMDF00") },
+  { id: "ygmgf00", brandId: "centrum", name: "CENTRUM KIDS GROWTH GUMMIES 1X30_BOTTLE", packSize: "Growth Gummies", mrp: 599, internalCode: "YGMGF00", ids: pIds("YGMGF00") },
+  { id: "ygmnf00", brandId: "centrum", name: "CENTRUM KIDS IMMUNITY GUMMIES 1X30_BOT", packSize: "Immunity Gummies", mrp: 599, internalCode: "YGMNF00", ids: pIds("YGMNF00") },
+  { id: "ygmif00", brandId: "centrum", name: "CENTRUM ADULT IMMUNITY GUMMIES 1X30_BOT", packSize: "Adult Gummies", mrp: 599, internalCode: "YGMIF00", ids: pIds("YGMIF00") },
+  { id: "ygmrf00", brandId: "centrum", name: "CENTRUM ADULT SLEEP GUMMIES 1X30_BOTTLE", packSize: "Sleep Gummies", mrp: 599, internalCode: "YGMRF00", ids: pIds("YGMRF00") },
+  { id: "ygmod00", brandId: "centrum", name: "CENTRUM OMEGA 3 FISH OIL 1X60_BOTTLE", packSize: "Omega", mrp: 649, internalCode: "YGMOD00", ids: pIds("YGMOD00") },
+  { id: "ygmhd00", brandId: "centrum", name: "Biotin", packSize: "Biotin", mrp: 399, internalCode: "YGMHD00", ids: pIds("YGMHD00") },
+  { id: "ygmcb00", brandId: "centrum", name: "Women Powder 400", packSize: "wmn pwdr 400", mrp: 649, internalCode: "YGMCB00", ids: pIds("YGMCB00") },
+  { id: "ygmtd00", brandId: "centrum", name: "Centrum Men Gummies", packSize: "Men Gummies", mrp: 649, internalCode: "YGMTD00", ids: pIds("YGMTD00") },
+  { id: "ygmxb00", brandId: "centrum", name: "Men Powder 400", packSize: "Men pwdr 400", mrp: 649, internalCode: "YGMXB00", ids: pIds("YGMXB00") },
+  { id: "ygmyb00", brandId: "centrum", name: "Kids Powder 400", packSize: "Kids pwdr 400", mrp: 649, internalCode: "YGMYB00", ids: pIds("YGMYB00") },
+  { id: "ygmud00", brandId: "centrum", name: "Centrum Women Gummies", packSize: "Women Gummies", mrp: 649, internalCode: "YGMUD00", ids: pIds("YGMUD00") },
+  { id: "ygmxa00", brandId: "centrum", name: "Men Powder 200", packSize: "Men pwdr 200", mrp: 399, internalCode: "YGMXA00", ids: pIds("YGMXA00") },
+  { id: "ygmca00", brandId: "centrum", name: "Women Powder 200", packSize: "wmn pwdr 200", mrp: 399, internalCode: "YGMCA00", ids: pIds("YGMCA00") },
+  { id: "ygmya00", brandId: "centrum", name: "Kids Powder 200", packSize: "Kids pwdr 200", mrp: 399, internalCode: "YGMYA00", ids: pIds("YGMYA00") },
+  { id: "ygmeb00", brandId: "centrum", name: "CENTRUM ENERGY DE-STRESS GUMMIES1X30_BOT", packSize: "Stress Gummies", mrp: 649, internalCode: "YGMEB00", ids: pIds("YGMEB00") },
+  { id: "ygmmc00", brandId: "centrum", name: "CENTRUM MEN TABLET ADULT 1X10_BLISTER", packSize: "Men 10", mrp: 185, internalCode: "YGMMC00", ids: pIds("YGMMC00") },
+  { id: "ygmja00", brandId: "centrum", name: "Centrum Joint and Mobility", packSize: "Joint&Mob", mrp: 799, internalCode: "YGMJA00", ids: pIds("YGMJA00") },
+  { id: "ygmwc00", brandId: "centrum", name: "CENTRUM WOMEN TABLET ADULT 1X10_BLISTER", packSize: "Women 10", mrp: 185, internalCode: "YGMWC00", ids: pIds("YGMWC00") },
+  { id: "ygm2k00", brandId: "centrum", name: "Centrum Recharg Pwdr Kids Orange6X5G_Sac", packSize: "Rechg Kids Orange sixer", mrp: 99, internalCode: "YGM2K00", ids: pIds("YGM2K00") },
+  { id: "ygm2o00", brandId: "centrum", name: "Centrum Recharge Pwdr Orange 6X5G Sachet", packSize: "Rechg Adult Orange sixer", mrp: 99, internalCode: "YGM2O00", ids: pIds("YGM2O00") },
+  { id: "ygm2m00", brandId: "centrum", name: "CENTRUM RECHARGE PWDR ORANGE1X5G SACT_30", packSize: "Rechg Adult Orange x30", mrp: 399, internalCode: "YGM2M00", ids: pIds("YGM2M00") },
 
-  // Panadol (Pain Relief) — 4 SKUs
-  { id: "sk-pan-1", brandId: "panadol", name: "Panadol Extra 500mg 10 tabs", packSize: "10 tabs", mrp: 55, ids: pIds("PE-PAN1", "TM-PAN1", "ZP-PAN1", "AM-PAN1") },
-  { id: "sk-pan-2", brandId: "panadol", name: "Panadol Cold + Flu All-in-One 10 tabs", packSize: "10 tabs", mrp: 95, ids: pIds("PE-PAN2", "TM-PAN2", "ZP-PAN2", "AM-PAN2") },
-  { id: "sk-pan-3", brandId: "panadol", name: "Panadol Advance 500mg 16 tabs", packSize: "16 tabs", mrp: 75, ids: pIds("PE-PAN3", "TM-PAN3", "ZP-PAN3", "AM-PAN3") },
-  { id: "sk-pan-4", brandId: "panadol", name: "Panadol Actifast 500mg 14 tabs", packSize: "14 tabs", mrp: 80, ids: pIds("PE-PAN4", "TM-PAN4", "ZP-PAN4", "AM-PAN4") },
+  // Crocin (Pain Relief) — 11 SKUs
+  { id: "ygcab00", brandId: "crocin", name: "CROCIN ADVANCE 500MG 20TABLETS", packSize: "Advance 500", mrp: 32, internalCode: "YGCAB00", ids: pIds("YGCAB00") },
+  { id: "ygcbb00", brandId: "crocin", name: "CROCIN T 650MG 15TABLETS", packSize: "Tab 650mg", mrp: 55, internalCode: "YGCBB00", ids: pIds("YGCBB00") },
+  { id: "ygcdb00", brandId: "crocin", name: "CROCIN LIQUID 240MG/5ML 1X100ML", packSize: "Susp 240mg", mrp: 120, internalCode: "YGCDB00", ids: pIds("YGCDB00") },
+  { id: "ygcoa00", brandId: "crocin", name: "CROCIN DROPS 100MG/1ML 1X15ML", packSize: "Drops 100mg", mrp: 85, internalCode: "YGCOA00", ids: pIds("YGCOA00") },
+  { id: "ygcpa00", brandId: "crocin", name: "CROCIN TABLET 650+50MG 15TABS PAIN REL", packSize: "Pain relief 650mg", mrp: 75, internalCode: "YGCPA00", ids: pIds("YGCPA00") },
+  { id: "ygcsa00", brandId: "crocin", name: "CROCIN SUSPENSION 24MG/ML 1X60ML SINGLE", packSize: "Susp 24mg", mrp: 80, internalCode: "YGCSA00", ids: pIds("YGCSA00") },
+  { id: "ygcsb00", brandId: "crocin", name: "CROCIN 120 SUSPENSION 24MG/ML 1X100ML", packSize: "Susp 24mg", mrp: 125, internalCode: "YGCSB00", ids: pIds("YGCSB00") },
+  { id: "ygcta00", brandId: "crocin", name: "CROCIN LOZENGS ORNG18+4 FREE_BLSTR_JARPK", packSize: "Lozenges Orange", mrp: 85, internalCode: "YGCTA00", ids: pIds("YGCTA00") },
+  { id: "ygctg00", brandId: "crocin", name: "CROCIN LOZENG GINGR MULETHI18+4_STRP_JAR", packSize: "Lozenges Ginger", mrp: 85, internalCode: "YGCTG00", ids: pIds("YGCTG00") },
+  { id: "ygcfai1", brandId: "crocin", name: "CROCIN COLDFLU 500MG 15TABLETS", packSize: "ColdFlu 500mg", mrp: 78, internalCode: "YGCFAI1", ids: pIds("YGCFAI1") },
+  { id: "ygcrn00", brandId: "crocin", name: "CROCIN NATURAL COUGH SYRUP 1X100ML_BOT", packSize: "Crocin Naturals", mrp: 155, internalCode: "YGCRN00", ids: pIds("YGCRN00") },
 
-  // Voltaren (Pain Relief) — 5 SKUs
-  { id: "sk-vol-1", brandId: "voltaren", name: "Voltaren Emulgel 50g", packSize: "50g", mrp: 280, ids: pIds("PE-VOL1", "TM-VOL1", "ZP-VOL1", "AM-VOL1") },
-  { id: "sk-vol-2", brandId: "voltaren", name: "Voltaren Emulgel 30g", packSize: "30g", mrp: 195, ids: pIds("PE-VOL2", "TM-VOL2", "ZP-VOL2", "AM-VOL2") },
-  { id: "sk-vol-3", brandId: "voltaren", name: "Voltaren Emulgel 100g", packSize: "100g", mrp: 520, ids: pIds("PE-VOL3", "TM-VOL3", "ZP-VOL3", "AM-VOL3") },
-  { id: "sk-vol-4", brandId: "voltaren", name: "Voltaren Plus 20 tabs", packSize: "20 tabs", mrp: 140, ids: pIds("PE-VOL4", "TM-VOL4", "ZP-VOL4", "AM-VOL4") },
-  { id: "sk-vol-5", brandId: "voltaren", name: "Voltaren Rapid 25mg 10 tabs", packSize: "10 tabs", mrp: 110, ids: pIds("PE-VOL5", "TM-VOL5", "ZP-VOL5", "AM-VOL5") },
+  // ENO (Antacids) — 19 SKUs
+  { id: "ygeaa00", brandId: "eno", name: "ENO POWDER AJWAIN 1X5G SACHET_30", packSize: "Ajwain5g", mrp: 155, internalCode: "YGEAA00", ids: pIds("YGEAA00") },
+  { id: "ygeca00", brandId: "eno", name: "ENO Cola 1X5G SACHET", packSize: "Cola 5g", mrp: 8, internalCode: "YGECA00", ids: pIds("YGECA00") },
+  { id: "ygela00", brandId: "eno", name: "ENO POWDER LEMON 1X5G SACHET_30", packSize: "Lemon 5g", mrp: 155, internalCode: "YGELA00", ids: pIds("YGELA00") },
+  { id: "ygelb00", brandId: "eno", name: "Eno Powder Lemon 5g", packSize: "Lemon 5g", mrp: 8, internalCode: "YGELB00", ids: pIds("YGELB00") },
+  { id: "ygelc00", brandId: "eno", name: "ENO POWDER LEMON 6X5G SACHET MULTIPACK", packSize: "Lemon sixer", mrp: 45, internalCode: "YGELC00", ids: pIds("YGELC00") },
+  { id: "ygelcr1", brandId: "eno", name: "ENO POWDER LEMON 6X5G SIX SACHET PACK", packSize: "Lemon sixer", mrp: 45, internalCode: "YGELCR1", ids: pIds("YGELCR1") },
+  { id: "ygeldr1", brandId: "eno", name: "ENO POWDER LEMON 100G BOTTLE_REL", packSize: "Lemon 100g", mrp: 115, internalCode: "YGELDR1", ids: pIds("YGELDR1") },
+  { id: "ygema00", brandId: "eno", name: "ENO POWDER MAUSAMBI 1X5G SACHET_30", packSize: "Mausambi 5g", mrp: 155, internalCode: "YGEMA00", ids: pIds("YGEMA00") },
+  { id: "ygeoa00", brandId: "eno", name: "ENO POWDER Orange 1X5G SACHET", packSize: "Orange 5g", mrp: 155, internalCode: "YGEOA00", ids: pIds("YGEOA00") },
+  { id: "ygeodr1", brandId: "eno", name: "ENO POWDER ORANGE 100G BOTTLE_REL", packSize: "Orange 100g", mrp: 115, internalCode: "YGEODR1", ids: pIds("YGEODR1") },
+  { id: "ygera00", brandId: "eno", name: "ENO POWDER Regular 1X5G SACHET", packSize: "Regular 5g", mrp: 155, internalCode: "YGERA00", ids: pIds("YGERA00") },
+  { id: "ygerdr1", brandId: "eno", name: "ENO POWDER REGULAR 100G BOTTLE_REL", packSize: "Regular 100g", mrp: 115, internalCode: "YGERDR1", ids: pIds("YGERDR1") },
+  { id: "ygeja00", brandId: "eno", name: "ENO POWDER JALJEERA 1X5G SACHET_30", packSize: "Jaljeera5g", mrp: 155, internalCode: "YGEJA00", ids: pIds("YGEJA00") },
+  { id: "ygeka00", brandId: "eno", name: "Eno Nimbu Masala Digestive Antacid(Box)", packSize: "Nimbu Masala 5g", mrp: 155, internalCode: "YGEKA00", ids: pIds("YGEKA00") },
+  { id: "ygebl00", brandId: "eno", name: "ENO CHEWY BITES TANGY LEMON 1X10_BOTTLE", packSize: "ECB Lemon 10", mrp: 115, internalCode: "YGEBL00", ids: pIds("YGEBL00") },
+  { id: "ygebm00", brandId: "eno", name: "ENO CHEWY BITES TANGY LEMON 1X30_BOTTLE", packSize: "ECB Lemon 30", mrp: 295, internalCode: "YGEBM00", ids: pIds("YGEBM00") },
+  { id: "ygebo00", brandId: "eno", name: "ENO CHEWY BITES ZESTY ORANGE 1X10_BOTTLE", packSize: "ECB Orange 10", mrp: 115, internalCode: "YGEBO00", ids: pIds("YGEBO00") },
+  { id: "ygebr00", brandId: "eno", name: "ENO CHEWY BITES ZESTY ORANGE 1X30_BOTTLE", packSize: "ECB Orange 30", mrp: 295, internalCode: "YGEBR00", ids: pIds("YGEBR00") },
+  { id: "ygeza00", brandId: "eno", name: "Eno Jeera Ajwain", packSize: "3in1 sixer", mrp: 55, internalCode: "YGEZA00", ids: pIds("YGEZA00") },
+  { id: "ygers00", brandId: "eno", name: "ENO POWDER Regular 6X5G SACHET", packSize: "Regular sixer", mrp: 45, internalCode: "YGERS00", ids: pIds("YGERS00") },
+  { id: "ygeos00", brandId: "eno", name: "ENO POWDER ORANGE 6X5G SIX_SAC PACK", packSize: "Orange sixer", mrp: 45, internalCode: "YGEOS00", ids: pIds("YGEOS00") },
+  { id: "ygecs00", brandId: "eno", name: "ENO Cola 1X5G SACHET", packSize: "Cola sixer", mrp: 45, internalCode: "YGECS00", ids: pIds("YGECS00") },
+  { id: "ygezc00", brandId: "eno", name: "Eno Powder Jeera&Ajwain 1X5G Sachet_27+3", packSize: "Eno jeera ajwain", mrp: 155, internalCode: "YGEZC00", ids: pIds("YGEZC00") },
 
-  // Centrum (Multivitamins) — 6 SKUs
-  { id: "sk-cen-1", brandId: "centrum", name: "Centrum Adults 30 tabs", packSize: "30 tabs", mrp: 420, ids: pIds("PE-CEN1", "TM-CEN1", "ZP-CEN1", "AM-CEN1") },
-  { id: "sk-cen-2", brandId: "centrum", name: "Centrum Women 30 tabs", packSize: "30 tabs", mrp: 440, ids: pIds("PE-CEN2", "TM-CEN2", "ZP-CEN2", "AM-CEN2") },
-  { id: "sk-cen-3", brandId: "centrum", name: "Centrum Men 30 tabs", packSize: "30 tabs", mrp: 440, ids: pIds("PE-CEN3", "TM-CEN3", "ZP-CEN3", "AM-CEN3") },
-  { id: "sk-cen-4", brandId: "centrum", name: "Centrum Adults 50+ 30 tabs", packSize: "30 tabs", mrp: 460, ids: pIds("PE-CEN4", "TM-CEN4", "ZP-CEN4", "AM-CEN4") },
-  { id: "sk-cen-5", brandId: "centrum", name: "Centrum Kids Gummies 30 count", packSize: "30 count", mrp: 480, ids: pIds("PE-CEN5", "TM-CEN5", "ZP-CEN5", "AM-CEN5") },
-  { id: "sk-cen-6", brandId: "centrum", name: "Centrum Adults 60 tabs", packSize: "60 tabs", mrp: 780, ids: pIds("PE-CEN6", "TM-CEN6", "ZP-CEN6", "AM-CEN6") },
+  // Iodex (Pain Relief) — 14 SKUs
+  { id: "ygibb00", brandId: "iodex", name: "IODEX BALM REGULAR 1X8G BOTTLE", packSize: "Balm 8g", mrp: 55, internalCode: "YGIBB00", ids: pIds("YGIBB00") },
+  { id: "ygisb00", brandId: "iodex", name: "IODEX RAPID ACTION SPRAY 1X35G_SRP", packSize: "Spray 35G", mrp: 175, internalCode: "YGISB00", ids: pIds("YGISB00") },
+  { id: "ygybb00", brandId: "iodex", name: "IODEX BALM REGULAR 1X8G BOTTLE", packSize: "Balm 8g", mrp: 55, internalCode: "YGYBB00", ids: pIds("YGYBB00") },
+  { id: "ygybc00", brandId: "iodex", name: "IODEX BALM REGULAR 1X16G BOTTLE", packSize: "Balm 16g", mrp: 95, internalCode: "YGYBC00", ids: pIds("YGYBC00") },
+  { id: "ygybd00", brandId: "iodex", name: "IODEX BALM REGULAR 1X40G BOTTLE", packSize: "Balm 40g", mrp: 199, internalCode: "YGYBD00", ids: pIds("YGYBD00") },
+  { id: "ygygd00", brandId: "iodex", name: "IODEX POWER GEL 1X30G", packSize: "Power Gel 30g", mrp: 245, internalCode: "YGYGD00", ids: pIds("YGYGD00") },
+  { id: "ygygf00", brandId: "iodex", name: "IODEX POWER GEL 1X10G", packSize: "Power Gel 10g", mrp: 115, internalCode: "YGYGF00", ids: pIds("YGYGF00") },
+  { id: "ygysb00", brandId: "iodex", name: "IODEX RAPID ACTION SPRAY 1X60G_CAN", packSize: "Spray 60g", mrp: 285, internalCode: "YGYSB00", ids: pIds("YGYSB00") },
+  { id: "ygysc00", brandId: "iodex", name: "IODEX RAPID ACTION SPRAY 3X35G", packSize: "Spray 35GPO3", mrp: 499, internalCode: "YGYSC00", ids: pIds("YGYSC00") },
+  { id: "ygyub00", brandId: "iodex", name: "Iodex Ultragel 30g", packSize: "IUG 30G", mrp: 315, internalCode: "YGYUB00", ids: pIds("YGYUB00") },
+  { id: "ygyuc00", brandId: "iodex", name: "Iodex Ultragel 50g", packSize: "IUG 50G", mrp: 445, internalCode: "YGYUC00", ids: pIds("YGYUC00") },
+  { id: "ygyud00", brandId: "iodex", name: "Iodex Ultragel 15g", packSize: "IUG 15G", mrp: 179, internalCode: "YGYUD00", ids: pIds("YGYUD00") },
+  { id: "ygylb00", brandId: "iodex", name: "IODEX ULTRAGEL 1.16% 1X30G", packSize: "IUG 30G_New", mrp: 315, internalCode: "YGYLB00", ids: pIds("YGYLB00") },
+  { id: "ygyld00", brandId: "iodex", name: "IODEX ULTRAGEL+ 2% 1X15G_SRP", packSize: "IUG 15G_New", mrp: 179, internalCode: "YGYLD00", ids: pIds("YGYLD00") },
+  { id: "ygylc00", brandId: "iodex", name: "IODEX ULTRAGEL+ 2% 1X50G", packSize: "IUG 50G_New", mrp: 445, internalCode: "YGYLC00", ids: pIds("YGYLC00") },
+  { id: "ygiud00", brandId: "iodex", name: "Iodex Ultragel 1.16% 1X30G", packSize: "IUG 30G_New", mrp: 315, internalCode: "YGIUD00", ids: pIds("YGIUD00") },
+  { id: "ygyac00", brandId: "iodex", name: "Iodex Gel Non Medicated 1X16G", packSize: "Mbalm_16", mrp: 115, internalCode: "YGYAC00", ids: pIds("YGYAC00") },
+  { id: "ygysa00", brandId: "iodex", name: "IODEX RAPID ACTION SPRAY 1X35G", packSize: "Spray 35G", mrp: 175, internalCode: "YGYSA00", ids: pIds("YGYSA00") },
+  { id: "ygibc00", brandId: "iodex", name: "Iodex Balm Regular 1X16G Bottle", packSize: "Balm 16g", mrp: 95, internalCode: "YGIBC00", ids: pIds("YGIBC00") },
 
-  // Otrivin (Cold & Flu) — 5 SKUs
-  { id: "sk-otr-1", brandId: "otrivin", name: "Otrivin Adult Nasal Spray 10ml", packSize: "10ml", mrp: 125, ids: pIds("PE-OTR1", "TM-OTR1", "ZP-OTR1", "AM-OTR1") },
-  { id: "sk-otr-2", brandId: "otrivin", name: "Otrivin Plus 10ml", packSize: "10ml", mrp: 155, ids: pIds("PE-OTR2", "TM-OTR2", "ZP-OTR2", "AM-OTR2") },
-  { id: "sk-otr-3", brandId: "otrivin", name: "Otrivin Baby Drops 10ml", packSize: "10ml", mrp: 110, ids: pIds("PE-OTR3", "TM-OTR3", "ZP-OTR3", "AM-OTR3") },
-  { id: "sk-otr-4", brandId: "otrivin", name: "Otrivin Saline Drops 10ml", packSize: "10ml", mrp: 95, ids: pIds("PE-OTR4", "TM-OTR4", "ZP-OTR4", "AM-OTR4") },
-  { id: "sk-otr-5", brandId: "otrivin", name: "Otrivin Menthol Plus 10ml", packSize: "10ml", mrp: 165, ids: pIds("PE-OTR5", "TM-OTR5", "ZP-OTR5", "AM-OTR5") },
+  // Sensodyne Mouthwash (Oral Care) — 2 SKUs
+  { id: "ygsox00", brandId: "mouthwash", name: "Sensodyne Mouthwash", packSize: "MW 250ML", mrp: 365, internalCode: "YGSOX00", ids: pIds("YGSOX00") },
+  { id: "ygsoy00", brandId: "mouthwash", name: "SENSODYNE COMP PROT MOUTHWASH 100ML", packSize: "MW 100ML", mrp: 215, internalCode: "YGSOY00", ids: pIds("YGSOY00") },
 
-  // ENO (Antacids) — 6 SKUs
-  { id: "sk-eno-1", brandId: "eno", name: "ENO Lemon 5g sachet x30", packSize: "5g x30", mrp: 150, ids: pIds("PE-ENO1", "TM-ENO1", "ZP-ENO1", "AM-ENO1") },
-  { id: "sk-eno-2", brandId: "eno", name: "ENO Orange 5g sachet x30", packSize: "5g x30", mrp: 150, ids: pIds("PE-ENO2", "TM-ENO2", "ZP-ENO2", "AM-ENO2") },
-  { id: "sk-eno-3", brandId: "eno", name: "ENO Regular 100g bottle", packSize: "100g", mrp: 110, ids: pIds("PE-ENO3", "TM-ENO3", "ZP-ENO3", "AM-ENO3") },
-  { id: "sk-eno-4", brandId: "eno", name: "ENO Cool Lemon 5g sachet x30", packSize: "5g x30", mrp: 155, ids: pIds("PE-ENO4", "TM-ENO4", "ZP-ENO4", "AM-ENO4") },
-  { id: "sk-eno-5", brandId: "eno", name: "ENO Lemon 100g bottle", packSize: "100g", mrp: 115, ids: pIds("PE-ENO5", "TM-ENO5", "ZP-ENO5", "AM-ENO5") },
-  { id: "sk-eno-6", brandId: "eno", name: "ENO Masala Lime 5g sachet x10", packSize: "5g x10", mrp: 55, ids: pIds("PE-ENO6", "TM-ENO6", "ZP-ENO6", "AM-ENO6") },
+  // Ostocalcium (Multivitamins) — 7 SKUs
+  { id: "ygzpar1", brandId: "ostocalcium", name: "OSTOCALCIUM CHEW ORANGE 30TAB BOTTLE_REL", packSize: "Oscal 30", mrp: 299, internalCode: "YGZPAR1", ids: pIds("YGZPAR1") },
+  { id: "ygzsa00", brandId: "ostocalcium", name: "OSTOCALCIUM SUSPENSION BANANA 1X200ML", packSize: "Susp Banana 200", mrp: 225, internalCode: "YGZSA00", ids: pIds("YGZSA00") },
+  { id: "ygzsb00", brandId: "ostocalcium", name: "OSTOCALCIUM SUSP LEMON AND LIME 1X200ML", packSize: "Susp Lemon 200", mrp: 225, internalCode: "YGZSB00", ids: pIds("YGZSB00") },
+  { id: "ygmpa00", brandId: "ostocalcium", name: "CENTRUM OSTOCAL TTL CHEWABLE 60TAB_BOT", packSize: "Oscal 60", mrp: 549, internalCode: "YGMPA00", ids: pIds("YGMPA00") },
+  { id: "ygmpd00", brandId: "ostocalcium", name: "CENTRUM OSTOCAL TTL CHEWABLE 30TAB_BOT", packSize: "Oscal 30", mrp: 299, internalCode: "YGMPD00", ids: pIds("YGMPD00") },
+  { id: "ygmsb00", brandId: "ostocalcium", name: "CENTRUM OSTO TTL SUSP BANANA B12 1X200ML", packSize: "Susp B12 200", mrp: 249, internalCode: "YGMSB00", ids: pIds("YGMSB00") },
+  { id: "ygmpc00", brandId: "ostocalcium", name: "Centrum Ostocalcium Ccm 1X15S_Blister", packSize: "CCM", mrp: 189, internalCode: "YGMPC00", ids: pIds("YGMPC00") },
+
+  // Otrivin (Cold & Flu) — 11 SKUs
+  { id: "ygoacr1", brandId: "otrivin", name: "OTRIVIN AD NASAL SOL MOI 0.1% 1X10ML_REL", packSize: "Nasal AD 10", mrp: 135, internalCode: "YGOACR1", ids: pIds("YGOACR1") },
+  { id: "ygobar1", brandId: "otrivin", name: "OTRIVIN SL NASAL SOL MOI 0.74%1X10ML_REL", packSize: "Nasal SL 10", mrp: 135, internalCode: "YGOBAR1", ids: pIds("YGOBAR1") },
+  { id: "ygoca00", brandId: "otrivin", name: "OTRIVIN NASAL SOL 0.74% 1X100ML BRTHCLN", packSize: "OBC", mrp: 275, internalCode: "YGOCA00", ids: pIds("YGOCA00") },
+  { id: "ygofa00", brandId: "otrivin", name: "OTRIVIN FR NASAL SOL 0.05% 1X10ML", packSize: "Nasal FR 10", mrp: 135, internalCode: "YGOFA00", ids: pIds("YGOFA00") },
+  { id: "ygomar1", brandId: "otrivin", name: "OTRIVIN PD NASAL SOL MOIST 0.1% 1X10ML", packSize: "Nasal PD 10", mrp: 125, internalCode: "YGOMAR1", ids: pIds("YGOMAR1") },
+  { id: "ygopb00", brandId: "otrivin", name: "OTRIVIN PD NASAL SOL 0.1% 1X10ML", packSize: "Nasal PD 10", mrp: 125, internalCode: "YGOPB00", ids: pIds("YGOPB00") },
+  { id: "ygosb00", brandId: "otrivin", name: "OTRIVIN NR NASAL SOL 0.1% 1X10ML", packSize: "Nasal NR 10", mrp: 125, internalCode: "YGOSB00", ids: pIds("YGOSB00") },
+  { id: "ygoea00", brandId: "otrivin", name: "OTRIVN ADVNCE OXYMETAZOLIN.05%1X10ML_SAM", packSize: "Metered dose", mrp: 175, internalCode: "YGOEA00", ids: pIds("YGOEA00") },
+  { id: "ygopx00", brandId: "otrivin", name: "OTRIVIN PD OXY NASAL SOL 0.025% 1X10ML", packSize: "Otr_pd_0.025", mrp: 135, internalCode: "YGOPX00", ids: pIds("YGOPX00") },
+  { id: "ygobb00", brandId: "otrivin", name: "OTRIVIN SL NASAL SOL MOI 0.74% 1X20ML", packSize: "Otr_nsl_0.74", mrp: 225, internalCode: "YGOBB00", ids: pIds("YGOBB00") },
+  { id: "ygoac00", brandId: "otrivin", name: "OTRIVIN AD NASAL SOL MOIST 0.1% 1X10ML", packSize: "Nasal AD 10", mrp: 135, internalCode: "YGOAC00", ids: pIds("YGOAC00") },
+
+  // Parodontax (Oral Care) — 8 SKUs
+  { id: "ygxfb00", brandId: "parodontax", name: "PARODONTAX TOOTHPASTE FLUORIDE 1X75G", packSize: "Daily Flouride 75", mrp: 235, internalCode: "YGXFB00", ids: pIds("YGXFB00") },
+  { id: "ygxfc00", brandId: "parodontax", name: "Parodontax Daily Fluoride 75g (pack of 2)", packSize: "Daily Flouride 75 po2", mrp: 449, internalCode: "YGXFC00", ids: pIds("YGXFC00") },
+  { id: "ygxub00", brandId: "parodontax", name: "PARODONTAX TOOTHPASTE ULTRACLEAN 1X75G", packSize: "Ultra clean 75", mrp: 235, internalCode: "YGXUB00", ids: pIds("YGXUB00") },
+  { id: "ygxuc00", brandId: "parodontax", name: "Parodontax Ultra Clean 75g (pack of 2)", packSize: "Ultra clean 75 po2", mrp: 449, internalCode: "YGXUC00", ids: pIds("YGXUC00") },
+  { id: "ygxba00", brandId: "parodontax", name: "PARODONTAX BRUSH 1 BRUSH", packSize: "Paro Brush po1", mrp: 169, internalCode: "YGXBA00", ids: pIds("YGXBA00") },
+  { id: "ygxbb00", brandId: "parodontax", name: "PARODONTAX BRUSH 2+1 BRUSH_FREE", packSize: "Paro Brush 2+1", mrp: 449, internalCode: "YGXBB00", ids: pIds("YGXBB00") },
+  { id: "ygxma00", brandId: "parodontax", name: "PARODONTAX MW MOUTHWASH 1X100ML", packSize: "Paro MW", mrp: 249, internalCode: "YGXMA00", ids: pIds("YGXMA00") },
+  { id: "ygxfba1", brandId: "parodontax", name: "Parodontax Paste Fluoride 1X75G_Tbfree", packSize: "Daily Flouride 75 po2", mrp: 235, internalCode: "YGXFBA1", ids: pIds("YGXFBA1") },
+
+  // Sensodyne Paste (Oral Care) — 34 SKUs
+  { id: "ygsder1", brandId: "paste", name: "SENSODYNE DEEP CLEAN 40 GM", packSize: "DC 40g", mrp: 105, internalCode: "YGSDER1", ids: pIds("YGSDER1") },
+  { id: "ygsdfr1", brandId: "paste", name: "SENSODYNE DEEP CLEAN 70 GM", packSize: "DC 70g", mrp: 175, internalCode: "YGSDFR1", ids: pIds("YGSDFR1") },
+  { id: "ygseo00", brandId: "paste", name: "SENSODYNE PASTE EXTRA FRESH GEL 3X75G", packSize: "FG 3X150", mrp: 799, internalCode: "YGSEO00", ids: pIds("YGSEO00") },
+  { id: "ygsfer1", brandId: "paste", name: "SENSODYNE 40G FRESHMINT", packSize: "FM 40g", mrp: 105, internalCode: "YGSFER1", ids: pIds("YGSFER1") },
+  { id: "ygsfgr1", brandId: "paste", name: "SENSODYNE FRESHMINT 75G TUBE", packSize: "FM 75g", mrp: 175, internalCode: "YGSFGR1", ids: pIds("YGSFGR1") },
+  { id: "ygsfjr1", brandId: "paste", name: "SENSODYNE TOOTHPASTE FRESHMINT1X150G_REL", packSize: "FM 150g", mrp: 339, internalCode: "YGSFJR1", ids: pIds("YGSFJR1") },
+  { id: "ygsfkr1", brandId: "paste", name: "SENSODYNE PASTE FRESHMINT 3X150G", packSize: "FM B2G1", mrp: 799, internalCode: "YGSFKR1", ids: pIds("YGSFKR1") },
+  { id: "ygsfp00", brandId: "paste", name: "Sensodyne Fresh Mint Pack of 3", packSize: "FM 3x150", mrp: 799, internalCode: "YGSFP00", ids: pIds("YGSFP00") },
+  { id: "ygsger1", brandId: "paste", name: "SENSODYNE 40G FRESHGEL", packSize: "FG 40g", mrp: 105, internalCode: "YGSGER1", ids: pIds("YGSGER1") },
+  { id: "ygsggr1", brandId: "paste", name: "SENSODYNE FRESH GEL 75G TUBE", packSize: "FG 75g", mrp: 175, internalCode: "YGSGGR1", ids: pIds("YGSGGR1") },
+  { id: "ygsgjr1", brandId: "paste", name: "SENSODYNE 150GM FRESHGEL TUBE", packSize: "FG 150g", mrp: 339, internalCode: "YGSGJR1", ids: pIds("YGSGJR1") },
+  { id: "ygsgkr1", brandId: "paste", name: "SENSODYNE PASTE FRESHGEL 3X150G", packSize: "FG B2G1", mrp: 799, internalCode: "YGSGKR1", ids: pIds("YGSGKR1") },
+  { id: "ygsgp00", brandId: "paste", name: "Sensodyne Fresh Gel Pack of 3", packSize: "FG 3X150", mrp: 799, internalCode: "YGSGP00", ids: pIds("YGSGP00") },
+  { id: "ygsit00", brandId: "paste", name: "SENSODYNE PASTE RAPID 3X80G", packSize: "RR 240", mrp: 620, internalCode: "YGSIT00", ids: pIds("YGSIT00") },
+  { id: "ygspfr2", brandId: "paste", name: "SENSODYNE REPAIR & PROTECT TP 72X70G", packSize: "R&P 70g", mrp: 11520, internalCode: "YGSPFR2", ids: pIds("YGSPFR2") },
+  { id: "ygspir2", brandId: "paste", name: "SENSODYNE REPAIR & PROTECT TP 72X100G", packSize: "R&P 100g", mrp: 14400, internalCode: "YGSPIR2", ids: pIds("YGSPIR2") },
+  { id: "ygspm00", brandId: "paste", name: "Sensodyne Toothpaste Repair & Protect Combo pack, tooth paste for deep repair of sensitive teeth, 140 gm multi-pack (70 gm x 2)", packSize: "R&P 140", mrp: 339, internalCode: "YGSPM00", ids: pIds("YGSPM00") },
+  { id: "ygsrer1", brandId: "paste", name: "SENSODYNE PASTE RAPRELIEF 1X40G", packSize: "RR 40g", mrp: 105, internalCode: "YGSRER1", ids: pIds("YGSRER1") },
+  { id: "ygsrhr1", brandId: "paste", name: "SENSODYNE PASTE RAPRELIEF 1X80G", packSize: "RR 80g", mrp: 219, internalCode: "YGSRHR1", ids: pIds("YGSRHR1") },
+  { id: "ygsrq00", brandId: "paste", name: "Sensodyne Toothpaste Rapid Relief Combo pack, Sensitive tooth paste to help beat sensitivity fast, 160 gm multi-pack (80 gm x 2)", packSize: "RR 160", mrp: 419, internalCode: "YGSRQ00", ids: pIds("YGSRQ00") },
+  { id: "ygssf00", brandId: "paste", name: "SENSODYNE PASTE SENSTIVITYGUM 1X70G", packSize: "S&G 70", mrp: 175, internalCode: "YGSSF00", ids: pIds("YGSSF00") },
+  { id: "ygssg00", brandId: "paste", name: "Sensodyne Toothpaste Sensitivity & Gum Combo pack, Dual action tooth paste for sensitive teeth and healthy gums, 140 gm multi-pack (70 gm x 2)", packSize: "S&G 140", mrp: 339, internalCode: "YGSSG00", ids: pIds("YGSSG00") },
+  { id: "ygswfr1", brandId: "paste", name: "Sensodyne Whitening 70g Tube", packSize: "WT 70g", mrp: 175, internalCode: "YGSWFR1", ids: pIds("YGSWFR1") },
+  { id: "ygsxf00", brandId: "paste", name: "SENSODYNE PASTE COMPLETE PROTECT+ 1X70G", packSize: "CP 70g", mrp: 175, internalCode: "YGSXF00", ids: pIds("YGSXF00") },
+  { id: "ygsxm00", brandId: "paste", name: "Sensodyne Toothpaste Complete Protection+ Combo pack, All in One daily oral care tooth paste for sensitive teeth, 140 gm multi-pack (70 gm x 2)", packSize: "CP 140", mrp: 339, internalCode: "YGSXM00", ids: pIds("YGSXM00") },
+  { id: "ygsfs00", brandId: "paste", name: "SENSODYNE FRESH MINT TP 72X150G", packSize: "FM B2G50", mrp: 23040, internalCode: "YGSFS00", ids: pIds("YGSFS00") },
+  { id: "ygsgs00", brandId: "paste", name: "SENSODYNE FRESH GEL TOOTHPASTE 72X150G", packSize: "FG B2G50", mrp: 23040, internalCode: "YGSGS00", ids: pIds("YGSGS00") },
+  { id: "ygsxfa1", brandId: "paste", name: "Sensodyne Complete Protect+ 1X70G Tbfree", packSize: "CP 70g", mrp: 175, internalCode: "YGSXFA1", ids: pIds("YGSXFA1") },
+  { id: "ygsgq00", brandId: "paste", name: "Sensodyne Toothpaste Fresh Gel 2X125G", packSize: "FG 2x125", mrp: 619, internalCode: "YGSGQ00", ids: pIds("YGSGQ00") },
+  { id: "ygsfq00", brandId: "paste", name: "Sensodyne Toothpaste Fresh Mint 2X125G", packSize: "FM 2x125", mrp: 619, internalCode: "YGSFQ00", ids: pIds("YGSFQ00") },
+  { id: "ygsps00", brandId: "paste", name: "Sensodyne Paste Repair Protct2X100G_Tube", packSize: "R&P 200g", mrp: 499, internalCode: "YGSPS00", ids: pIds("YGSPS00") },
+  { id: "ygsgj1a", brandId: "paste", name: "SENSODYNE PASTE FRESHGEL 1X150G TBFREE", packSize: "FG 150g_TB", mrp: 339, internalCode: "YGSGJ1A", ids: pIds("YGSGJ1A") },
+  { id: "ygshf00", brandId: "paste", name: "SENSODYNE PASTE HERBAL 1X70G TUBE", packSize: "paste_herbal", mrp: 175, internalCode: "YGSHF00", ids: pIds("YGSHF00") },
+  { id: "ygsbb00", brandId: "paste", name: "Sensodyne Expert White", packSize: "Expert white", mrp: 175, internalCode: "YGSBB00", ids: pIds("YGSBB00") },
+  { id: "ygsgea1", brandId: "paste", name: "SENSODYNE PASTE FRESHGEL 1X40G_25%EXTRA", packSize: "FG 40g", mrp: 105, internalCode: "YGSGEA1", ids: pIds("YGSGEA1") },
+  { id: "ygsfea1", brandId: "paste", name: "SENSODYNE PASTE FRESHMINT 1X40G_25%EXTRA", packSize: "FM 40g", mrp: 105, internalCode: "YGSFEA1", ids: pIds("YGSFEA1") },
+  { id: "ygsrh1a", brandId: "paste", name: "Sensodyne Paste Raprelief 1X80G 1Tbfree", packSize: "RR 80g", mrp: 219, internalCode: "YGSRH1A", ids: pIds("YGSRH1A") },
+  { id: "ygsat00", brandId: "paste", name: "Sensodyne Daily Protection Tp 288 X 20G", packSize: "DP 12x20g", mrp: 16640, internalCode: "YGSAT00", ids: pIds("YGSAT00") },
+  { id: "ygsav00", brandId: "paste", name: "Sensodyne Daily Protection Access12X20G", packSize: "DA 12x20g", mrp: 16640, internalCode: "YGSAV00", ids: pIds("YGSAV00") },
+
+  // Polident (Oral Care) — 1 SKU
+  { id: "ygpfa00", brandId: "polident", name: "POLIDENT FIX CR 1 X 20 G_IN", packSize: "Polident", mrp: 335, internalCode: "YGPFA00", ids: pIds("YGPFA00") },
+
+  // Pronamel (Oral Care) — 6 SKUs
+  { id: "ygslr00", brandId: "pronamel", name: "SENSODYNE PRONAMEL DAILYPROTECTION 2X70G", packSize: "Pronamel DP Po2", mrp: 499, internalCode: "YGSLR00", ids: pIds("YGSLR00") },
+  { id: "ygsls00", brandId: "pronamel", name: "SENSODYNE PRONAMEL FRESH BREATH 2X70G", packSize: "Pronamel FB Po2", mrp: 499, internalCode: "YGSLS00", ids: pIds("YGSLS00") },
+  { id: "ygslp00", brandId: "pronamel", name: "SENSODYNE PRONAMEL DAILYPROTECTION 1X70G", packSize: "Pronamel DP 70g", mrp: 279, internalCode: "YGSLP00", ids: pIds("YGSLP00") },
+  { id: "ygslf00", brandId: "pronamel", name: "SENSODYNE PRONAMEL FRESH BREATH 1X70G", packSize: "Pronamel FB 70g", mrp: 279, internalCode: "YGSLF00", ids: pIds("YGSLF00") },
+  { id: "ygslm00", brandId: "pronamel", name: "SENSODYNE PRONAMEL KIDS BUBBLE MINT1X70G", packSize: "Pronamel kids BM 70", mrp: 279, internalCode: "YGSLM00", ids: pIds("YGSLM00") },
+  { id: "ygslt00", brandId: "pronamel", name: "SENSODYNE PRONAMEL KIDS STRAWBERRY 1X70G", packSize: "Pronamel kids SB 70", mrp: 279, internalCode: "YGSLT00", ids: pIds("YGSLT00") },
+
+  // Voltaren (Pain Relief) — 1 SKU
+  { id: "ygvga00", brandId: "voltaren", name: "VOLTAREN TOPICAL GEL 2.32% 1X30G", packSize: "Voltaren", mrp: 479, internalCode: "YGVGA00", ids: pIds("YGVGA00") },
 ];
 
-function pIds(pe: string, tm: string, zp: string, am: string): Record<Platform, string | null> {
-  return { pharmeasy: pe, tata_1mg: tm, zepto: zp, amazon_pharmacy: am };
+function pIds(code: string): Record<Platform, string | null> {
+  return { pharmeasy: code, tata_1mg: code, zepto: code, amazon_pharmacy: code };
 }
 
 export const competitorSkus: CompetitorSKU[] = [
@@ -119,13 +277,19 @@ export const competitorSkus: CompetitorSKU[] = [
 ];
 
 export const brandKeywords: Record<string, string[]> = {
-  sensodyne: ["sensitive toothpaste", "sensodyne", "toothpaste for sensitive teeth", "tooth pain toothpaste", "best toothpaste sensitive teeth"],
-  crocin: ["crocin", "paracetamol 500", "fever tablet", "headache medicine", "body pain tablet"],
-  panadol: ["panadol", "paracetamol", "headache tablet"],
-  voltaren: ["voltaren", "knee pain gel", "muscle pain relief gel", "back pain gel"],
-  centrum: ["centrum", "multivitamin", "daily vitamin tablet", "centrum women", "centrum men"],
-  otrivin: ["otrivin", "nasal spray", "blocked nose spray", "nasal decongestant"],
-  eno: ["eno", "antacid", "acidity relief", "gas problem", "eno lemon"],
+  paste:       ["sensitive toothpaste", "sensodyne", "toothpaste for sensitive teeth", "tooth pain toothpaste", "whitening toothpaste"],
+  brush:       ["sensodyne toothbrush", "sensitive toothbrush", "deep clean toothbrush"],
+  parodontax:  ["parodontax", "bleeding gums toothpaste", "gum care toothpaste"],
+  pronamel:    ["pronamel", "enamel protection toothpaste", "acid erosion toothpaste"],
+  mouthwash:   ["sensodyne mouthwash", "mouthwash for sensitive teeth"],
+  polident:    ["polident", "denture adhesive", "denture fixative cream"],
+  crocin:      ["crocin", "paracetamol tablet", "fever tablet", "headache medicine", "body pain relief"],
+  iodex:       ["iodex", "pain relief balm", "muscle pain relief", "joint pain gel"],
+  voltaren:    ["voltaren", "diclofenac gel", "knee pain gel", "back pain relief gel"],
+  centrum:     ["centrum", "multivitamin tablet", "daily vitamin supplement", "centrum women", "centrum men"],
+  ostocalcium: ["ostocalcium", "calcium supplement", "calcium chewable"],
+  eno:         ["eno", "antacid", "acidity relief", "gas relief", "eno lemon"],
+  otrivin:     ["otrivin", "nasal spray", "blocked nose relief", "nasal decongestant"],
 };
 
 // --- Deterministic RNG ---
@@ -377,7 +541,8 @@ export const prices: PriceRow[] = (() => {
 
 // --- Fair share targets (mutable in-app via setFairShare) ---
 const fairShareDefault: Record<string, number> = {
-  sensodyne: 22, crocin: 18, panadol: 12, voltaren: 14, centrum: 24, otrivin: 20, eno: 28,
+  paste: 22, brush: 8, parodontax: 6, pronamel: 5, mouthwash: 4, polident: 3,
+  crocin: 18, iodex: 10, voltaren: 14, centrum: 24, ostocalcium: 8, eno: 28, otrivin: 20,
 };
 const fairShareMap = new Map<string, number>();
 brands.forEach((b) => PLATFORMS.forEach((p) => fairShareMap.set(`${b.id}|${p}`, fairShareDefault[b.id])));

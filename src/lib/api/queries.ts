@@ -30,6 +30,63 @@ export type DbUploadRow = {
 
 // ── Fetch server functions ────────────────────────────────────────────────────
 
+// ── Offtakes (detail) — period-filtered JOIN with skus ───────────────────────
+
+export type DbOfftakeDetailRow = {
+  skuId: string;
+  productName: string;
+  brandId: string;
+  platform: Platform;
+  period: string;
+  weekEnding: string;
+  units: number;
+  gmv: number;
+  mrp: number;
+};
+
+export const fetchOfftakesDetail = createServerFn({ method: "GET" })
+  .inputValidator((input: { period: string; platform?: string }) => input)
+  .handler(async ({ data }): Promise<DbOfftakeDetailRow[]> => {
+    const { env } = await import("cloudflare:workers");
+    type Raw = {
+      sku_id: string; product_name: string; brand_id: string;
+      platform: string; period: string | null; week_ending: string;
+      units: number; gmv: number; mrp: number;
+    };
+    const base = `
+      SELECT o.sku_id, s.name AS product_name, s.brand_id, s.mrp,
+             o.platform, o.period, o.week_ending, o.units, o.gmv
+      FROM offtakes o
+      JOIN skus s ON s.id = o.sku_id
+      WHERE coalesce(o.period, substr(o.week_ending, 1, 7)) = ?`;
+
+    const result = (
+      data.platform && data.platform !== "all"
+        ? await env.haleon_insights_db
+            .prepare(base + " AND o.platform = ? ORDER BY o.gmv DESC")
+            .bind(data.period, data.platform)
+            .all()
+        : await env.haleon_insights_db
+            .prepare(base + " ORDER BY o.gmv DESC")
+            .bind(data.period)
+            .all()
+    ) as D1Result<Raw>;
+
+    return result.results.map((r) => ({
+      skuId:       r.sku_id,
+      productName: r.product_name,
+      brandId:     r.brand_id,
+      platform:    r.platform as Platform,
+      period:      r.period ?? r.week_ending.slice(0, 7),
+      weekEnding:  r.week_ending,
+      units:       r.units,
+      gmv:         r.gmv,
+      mrp:         r.mrp,
+    }));
+  });
+
+// ── Offtakes (all) — used for sparklines / trend data ────────────────────────
+
 export const fetchOfftakes = createServerFn({ method: "GET" }).handler(
   async (): Promise<OfftakeRow[]> => {
     const { env } = await import("cloudflare:workers");
@@ -172,6 +229,123 @@ export const updateFairShare = createServerFn({ method: "POST" })
       .prepare("UPDATE fair_shares SET target_pct = ? WHERE brand_id = ? AND platform = ?")
       .bind(data.targetPct, data.brandId, data.platform)
       .run();
+  });
+
+// ── Purchase Orders ───────────────────────────────────────────────────────────
+
+export type PurchaseOrderRow = {
+  id: string;
+  platform: string;
+  period: string;
+  productName: string;
+  asin?: string;
+  location?: string;
+  stockistName?: string;
+  edCode?: string;
+  qty: number;
+  mrp: number;
+  invoiceDate: string;
+};
+
+export const fetchPurchaseOrders = createServerFn({ method: "GET" }).handler(
+  async (): Promise<PurchaseOrderRow[]> => {
+    const { env } = await import("cloudflare:workers");
+    type Raw = {
+      id: string; platform: string; period: string; product_name: string;
+      asin: string | null; location: string | null; stockist_name: string | null;
+      ed_code: string | null; qty: number; mrp: number; invoice_date: string;
+    };
+    const result = (await env.haleon_insights_db
+      .prepare(
+        `SELECT id, platform, period, product_name, asin, location,
+                stockist_name, ed_code, qty, mrp, invoice_date
+         FROM purchase_orders
+         ORDER BY invoice_date DESC, id`
+      )
+      .all()) as D1Result<Raw>;
+    return result.results.map((r) => ({
+      id: r.id,
+      platform: r.platform,
+      period: r.period,
+      productName: r.product_name,
+      asin: r.asin ?? undefined,
+      location: r.location ?? undefined,
+      stockistName: r.stockist_name ?? undefined,
+      edCode: r.ed_code ?? undefined,
+      qty: r.qty,
+      mrp: r.mrp,
+      invoiceDate: r.invoice_date,
+    }));
+  },
+);
+
+// ── Digital Spends ────────────────────────────────────────────────────────────
+
+export type DbDigitalSpendsRow = {
+  id: string;
+  brandId: string;
+  platform: Platform;
+  period: string;
+  paidSpendInr: number;
+  paidSalesInr: number;
+  paidRoas: number;
+};
+
+export const fetchDigitalSpends = createServerFn({ method: "GET" }).handler(
+  async (): Promise<DbDigitalSpendsRow[]> => {
+    const { env } = await import("cloudflare:workers");
+    type Raw = {
+      id: string; brand_id: string; platform: string; period: string;
+      paid_spend_inr: number; paid_sales_inr: number; paid_roas: number;
+    };
+    const result = (await env.haleon_insights_db
+      .prepare(
+        `SELECT id, brand_id, platform, period, paid_spend_inr, paid_sales_inr, paid_roas
+         FROM digital_spends ORDER BY period, brand_id`
+      )
+      .all()) as D1Result<Raw>;
+    return result.results.map((r) => ({
+      id: r.id,
+      brandId: r.brand_id,
+      platform: r.platform as Platform,
+      period: r.period,
+      paidSpendInr: r.paid_spend_inr,
+      paidSalesInr: r.paid_sales_inr,
+      paidRoas: r.paid_roas,
+    }));
+  },
+);
+
+// ── Market Share ──────────────────────────────────────────────────────────────
+
+export type DbMarketShareRow = {
+  brandId: string;
+  platform: Platform;
+  period: string;
+  sharePct: number;
+  categoryGmvInr: number | null;
+};
+
+export const fetchMarketShare = createServerFn({ method: "GET" })
+  .inputValidator((input: { period: string; platform?: Platform | "all" }) => input)
+  .handler(async ({ data }): Promise<DbMarketShareRow[]> => {
+    const { env } = await import("cloudflare:workers");
+    type Raw = { brand_id: string; platform: string; period: string; share_pct: number; category_gmv_inr: number | null };
+    const platformFilter = data.platform && data.platform !== "all" ? data.platform : null;
+    const sql = platformFilter
+      ? "SELECT brand_id, platform, period, share_pct, category_gmv_inr FROM brand_market_share WHERE period = ? AND platform = ? ORDER BY brand_id"
+      : "SELECT brand_id, platform, period, share_pct, category_gmv_inr FROM brand_market_share WHERE period = ? ORDER BY brand_id";
+    const stmt = platformFilter
+      ? env.haleon_insights_db.prepare(sql).bind(data.period, platformFilter)
+      : env.haleon_insights_db.prepare(sql).bind(data.period);
+    const result = (await stmt.all()) as D1Result<Raw>;
+    return result.results.map((r) => ({
+      brandId: r.brand_id,
+      platform: r.platform as Platform,
+      period: r.period,
+      sharePct: r.share_pct,
+      categoryGmvInr: r.category_gmv_inr ?? null,
+    }));
   });
 
 // ── Helper: convert DbPriceRow → PriceRow (mock-data shape) ─────────────────

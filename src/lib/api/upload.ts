@@ -281,3 +281,343 @@ export const processUpload = createServerFn({ method: "POST" })
 
     return { committed, skipped, autoCreated };
   });
+
+// ════════════════════════════════════════════════════════════════════════════
+// OFFTAKES UPLOAD  (Amazon Pharmacy invoice-line CSV format)
+// ════════════════════════════════════════════════════════════════════════════
+
+export type OfftakesUploadInput = { csvText: string };
+
+export type OfftakesUploadResult = {
+  committed: number;
+  skipped:   number;
+  unmatched: string[];   // product_name values that couldn't be resolved to a SKU
+};
+
+/** Score how similar two product name strings are (0–1) using token overlap. */
+function tokenSimilarity(a: string, b: string): number {
+  const tok = (s: string) =>
+    s.toLowerCase().replace(/[^a-z0-9 ]+/g, " ").split(/\s+/).filter(Boolean);
+  const ta = new Set(tok(a));
+  const tb = new Set(tok(b));
+  if (ta.size === 0 || tb.size === 0) return 0;
+  let overlap = 0;
+  ta.forEach((t) => { if (tb.has(t)) overlap++; });
+  return overlap / Math.max(ta.size, tb.size);
+}
+
+export const processOfftakesUpload = createServerFn({ method: "POST" })
+  .inputValidator((input: OfftakesUploadInput) => input)
+  .handler(async ({ data }): Promise<OfftakesUploadResult> => {
+    const { env } = await import("cloudflare:workers");
+    const db = env.haleon_insights_db;
+
+    // ── Parse CSV ─────────────────────────────────────────────────────────
+    const lines = data.csvText.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+    if (lines.length < 2) throw new Error("CSV must have a header row and at least one data row");
+
+    const rawHeaders = splitCsvLine(lines[0]);
+    const headers    = rawHeaders.map((h) => h.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, ""));
+
+    const col = (candidates: string[]): number => {
+      for (const c of candidates) {
+        const i = headers.findIndex((h) => h === c || h.startsWith(c));
+        if (i >= 0) return i;
+      }
+      return -1;
+    };
+
+    const iProduct  = col(["product_name", "product", "name"]);
+    const iAsin     = col(["asin"]);
+    const iQty      = col(["qty", "quantity", "units"]);
+    const iMrp      = col(["mrp", "price", "unit_price"]);
+    const iDate     = col(["invoice_date", "date", "order_date"]);
+    const iLocation = col(["location", "city"]);
+    const iEdCode   = col(["ed_code", "ed"]);
+
+    if (iProduct < 0 || iQty < 0 || iMrp < 0) {
+      throw new Error("CSV must contain columns: product_name, qty, mrp (or equivalents)");
+    }
+
+    // ── Collect all ASINs from file for bulk DB lookup ─────────────────────
+    type ParsedLine = {
+      product: string; asin: string; qty: number; mrp: number;
+      invoiceDate: string; location: string; edCode: string;
+    };
+
+    const parsed: ParsedLine[] = [];
+    let skipped = 0;
+
+    for (let i = 1; i < lines.length; i++) {
+      const f = splitCsvLine(lines[i]);
+      if (f.length < 2) { skipped++; continue; }
+
+      const product = f[iProduct]?.trim() ?? "";
+      if (!product || product.toLowerCase() === "nan") { skipped++; continue; }
+
+      const qty = parseInt((f[iQty] ?? "0").replace(",", ""), 10);
+      const mrp = parseFloat((f[iMrp] ?? "0").replace(",", "").replace("₹", ""));
+      if (isNaN(qty) || isNaN(mrp) || qty <= 0) { skipped++; continue; }
+
+      const rawDate    = iDate >= 0 ? (f[iDate] ?? "") : "";
+      const invoiceDate = rawDate ? parseInvoiceDate(rawDate) : new Date().toISOString().slice(0, 10);
+      const asin        = iAsin     >= 0 ? (f[iAsin]?.trim()     ?? "") : "";
+      const location    = iLocation >= 0 ? (f[iLocation]?.trim() ?? "") : "";
+      const edCode      = iEdCode   >= 0 ? (f[iEdCode]?.trim()   ?? "") : "";
+
+      parsed.push({
+        product,
+        asin:     asin     === "nan" ? "" : asin,
+        qty,
+        mrp,
+        invoiceDate,
+        location: location === "nan" ? "" : location,
+        edCode:   edCode   === "nan" ? "" : edCode,
+      });
+    }
+
+    if (parsed.length === 0) throw new Error("No valid data rows found in CSV");
+
+    // ── Step 1: resolve by ASIN via sku_platform_ids ──────────────────────
+    const PLATFORM = "amazon_pharmacy";
+
+    const asinSet = [...new Set(parsed.map((r) => r.asin).filter(Boolean))];
+    const asinMap = new Map<string, string>(); // asin → sku_id
+
+    if (asinSet.length > 0) {
+      const placeholders = asinSet.map(() => "?").join(",");
+      type AsinRow = { sku_id: string; external_id: string };
+      const asinResult = (await db
+        .prepare(
+          `SELECT sku_id, external_id FROM sku_platform_ids
+           WHERE platform = ? AND external_id IN (${placeholders})`
+        )
+        .bind(PLATFORM, ...asinSet)
+        .all()) as D1Result<AsinRow>;
+      for (const r of asinResult.results) {
+        asinMap.set(r.external_id, r.sku_id);
+      }
+    }
+
+    // ── Step 2: fuzzy product-name lookup for unresolved rows ─────────────
+    const unmatchedProducts = new Set(
+      parsed.filter((r) => !asinMap.has(r.asin)).map((r) => r.product)
+    );
+    const nameMap = new Map<string, string>(); // product_name → sku_id
+
+    if (unmatchedProducts.size > 0) {
+      type SkuNameRow = { id: string; name: string };
+      const skuNames = (await db
+        .prepare("SELECT id, name FROM skus")
+        .all()) as D1Result<SkuNameRow>;
+
+      for (const product of unmatchedProducts) {
+        let bestId    = "";
+        let bestScore = 0;
+        for (const sku of skuNames.results) {
+          const score = tokenSimilarity(product, sku.name);
+          if (score > bestScore) { bestScore = score; bestId = sku.id; }
+        }
+        if (bestScore >= 0.4) nameMap.set(product, bestId);
+      }
+    }
+
+    // ── Step 3: aggregate into (sku_id, platform, period) buckets ─────────
+    type Bucket = { units: number; gmv: number };
+    const buckets = new Map<string, Bucket>();  // key = "skuId|period"
+    const unmatchedSet = new Set<string>();
+
+    for (const r of parsed) {
+      const skuId = asinMap.get(r.asin) ?? nameMap.get(r.product) ?? "";
+      if (!skuId) { unmatchedSet.add(r.product); skipped++; continue; }
+
+      const period = r.invoiceDate.slice(0, 7);
+      const key    = `${skuId}|${period}`;
+      const bucket = buckets.get(key) ?? { units: 0, gmv: 0 };
+      bucket.units += r.qty;
+      bucket.gmv   += r.qty * r.mrp;
+      buckets.set(key, bucket);
+    }
+
+    // ── Step 4: upsert into offtakes ──────────────────────────────────────
+    const stmts: D1PreparedStatement[] = [];
+
+    for (const [key, bucket] of buckets) {
+      const [skuId, period] = key.split("|");
+      const weekEnding = `${period}-01`;
+
+      stmts.push(
+        db.prepare(
+          `INSERT INTO offtakes (sku_id, platform, week_ending, period, units, gmv)
+           VALUES (?,?,?,?,?,?)
+           ON CONFLICT(sku_id, platform, week_ending)
+           DO UPDATE SET units=excluded.units, gmv=excluded.gmv, period=excluded.period`
+        ).bind(skuId, PLATFORM, weekEnding, period, bucket.units, Math.round(bucket.gmv))
+      );
+    }
+
+    for (let i = 0; i < stmts.length; i += 100) {
+      await db.batch(stmts.slice(i, i + 100));
+    }
+
+    // ── Record the upload ─────────────────────────────────────────────────
+    const period    = parsed[0]?.invoiceDate.slice(0, 7) ?? new Date().toISOString().slice(0, 7);
+    const uploadId  = `up-${period}-${PLATFORM}-${Date.now()}`;
+    await db
+      .prepare(
+        `INSERT INTO uploads (id, week_ending, platform, uploaded_by, uploaded_at, row_count, status)
+         VALUES (?,?,?,'analyst',?,?,'committed') ON CONFLICT(id) DO NOTHING`
+      )
+      .bind(uploadId, `${period}-01`, PLATFORM, new Date().toISOString(), buckets.size)
+      .run();
+
+    return {
+      committed: buckets.size,
+      skipped,
+      unmatched: [...unmatchedSet].slice(0, 50),  // cap at 50 to keep toast readable
+    };
+  });
+
+// ════════════════════════════════════════════════════════════════════════════
+// PURCHASE ORDERS UPLOAD
+// ════════════════════════════════════════════════════════════════════════════
+
+export type POUploadInput = { csvText: string; platform?: string };
+export type POUploadResult = { committed: number; skipped: number };
+
+/** Split a single CSV line respecting quoted fields. */
+function splitCsvLine(line: string): string[] {
+  const fields: string[] = [];
+  let cur = "";
+  let inQuote = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') {
+      if (inQuote && line[i + 1] === '"') { cur += '"'; i++; }
+      else inQuote = !inQuote;
+    } else if (ch === "," && !inQuote) {
+      fields.push(cur.trim());
+      cur = "";
+    } else {
+      cur += ch;
+    }
+  }
+  fields.push(cur.trim());
+  return fields;
+}
+
+/** Parse DD-MM-YYYY, YYYY-MM-DD or DD/MM/YYYY → YYYY-MM-DD. Falls back to raw string. */
+function parseInvoiceDate(raw: string): string {
+  const s = raw.trim();
+  // YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  // DD-MM-YYYY or DD/MM/YYYY
+  const m = s.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/);
+  if (m) return `${m[3]}-${m[2].padStart(2, "0")}-${m[1].padStart(2, "0")}`;
+  return s;
+}
+
+/** Deterministic row-id from content (djb2 + index). */
+function poRowHash(fields: string[], idx: number): string {
+  let h = 5381;
+  const s = fields.join("|") + idx;
+  for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) >>> 0;
+  return `po-${h.toString(36)}-${idx}`;
+}
+
+/** Derive period (YYYY-MM) from an invoice-date string (YYYY-MM-DD). */
+function periodFromDate(isoDate: string): string {
+  return isoDate.slice(0, 7);
+}
+
+const PO_PLATFORM_MAP: Record<string, string> = {
+  "1mg": "tata_1mg", "tata1mg": "tata_1mg", "tata 1mg": "tata_1mg", "tata_1mg": "tata_1mg",
+  pharmeasy: "pharmeasy", "pharm easy": "pharmeasy",
+  zepto: "zepto",
+  amazon: "amazon_pharmacy", "amazon pharmacy": "amazon_pharmacy", amazon_pharmacy: "amazon_pharmacy",
+};
+
+function normPOPlatform(raw: string, fallback?: string): string {
+  return PO_PLATFORM_MAP[raw.toLowerCase().trim()] ?? fallback ?? raw.toLowerCase().trim();
+}
+
+export const processPOUpload = createServerFn({ method: "POST" })
+  .inputValidator((input: POUploadInput) => input)
+  .handler(async ({ data }): Promise<POUploadResult> => {
+    const { env } = await import("cloudflare:workers");
+    const db = env.haleon_insights_db;
+
+    const lines = data.csvText.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+    if (lines.length < 2) throw new Error("CSV must have a header row and at least one data row");
+
+    // Normalise header: lowercase + collapse spaces/special chars to _
+    const rawHeaders = splitCsvLine(lines[0]);
+    const headers = rawHeaders.map((h) => h.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, ""));
+
+    // Column index helpers
+    const col = (candidates: string[]): number => {
+      for (const c of candidates) {
+        const i = headers.findIndex((h) => h === c || h.startsWith(c));
+        if (i >= 0) return i;
+      }
+      return -1;
+    };
+
+    const iProduct   = col(["product_name", "product", "sku_name", "name"]);
+    const iQty       = col(["qty", "quantity", "units"]);
+    const iMrp       = col(["mrp", "price", "unit_price"]);
+    const iDate      = col(["invoice_date", "date", "order_date"]);
+    const iPlatform  = col(["platform"]);
+    const iAsin      = col(["asin"]);
+    const iLocation  = col(["location", "city", "state"]);
+    const iStockist  = col(["stockist_name", "stockist", "distributor"]);
+    const iEdCode    = col(["ed_code", "ed"]);
+
+    if (iProduct < 0 || iQty < 0 || iMrp < 0) {
+      throw new Error("CSV must contain columns: product_name, qty, mrp (or equivalents)");
+    }
+
+    let committed = 0;
+    let skipped   = 0;
+    const stmts: D1PreparedStatement[] = [];
+
+    for (let lineIdx = 1; lineIdx < lines.length; lineIdx++) {
+      const fields = splitCsvLine(lines[lineIdx]);
+      if (fields.length < 2) { skipped++; continue; }
+
+      const productName = fields[iProduct]?.trim();
+      const qty         = parseInt(fields[iQty] ?? "0", 10);
+      const mrp         = parseFloat(fields[iMrp] ?? "0");
+
+      if (!productName || isNaN(qty) || isNaN(mrp)) { skipped++; continue; }
+
+      const rawDate    = iDate >= 0 ? (fields[iDate] ?? "") : "";
+      const invoiceDate = rawDate ? parseInvoiceDate(rawDate) : new Date().toISOString().slice(0, 10);
+      const period     = periodFromDate(invoiceDate);
+      const rawPlat    = iPlatform >= 0 ? (fields[iPlatform] ?? "") : "";
+      const platform   = normPOPlatform(rawPlat, data.platform);
+      const asin       = iAsin      >= 0 ? (fields[iAsin]?.trim()     || null) : null;
+      const location   = iLocation  >= 0 ? (fields[iLocation]?.trim() || null) : null;
+      const stockist   = iStockist  >= 0 ? (fields[iStockist]?.trim() || null) : null;
+      const edCode     = iEdCode    >= 0 ? (fields[iEdCode]?.trim()   || null) : null;
+
+      const id = poRowHash(fields, lineIdx);
+
+      stmts.push(
+        db.prepare(
+          `INSERT INTO purchase_orders
+             (id, platform, period, product_name, asin, location, stockist_name, ed_code, qty, mrp, invoice_date)
+           VALUES (?,?,?,?,?,?,?,?,?,?,?)
+           ON CONFLICT(id) DO UPDATE SET
+             qty=excluded.qty, mrp=excluded.mrp, invoice_date=excluded.invoice_date`
+        ).bind(id, platform, period, productName, asin, location, stockist, edCode, qty, mrp, invoiceDate)
+      );
+      committed++;
+    }
+
+    for (let i = 0; i < stmts.length; i += 100) {
+      await db.batch(stmts.slice(i, i + 100));
+    }
+
+    return { committed, skipped };
+  });
