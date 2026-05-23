@@ -3,6 +3,7 @@ import { PageHeader } from "@/components/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useMemo, useState } from "react";
 import { brands, PLATFORMS, PLATFORM_LABEL, visibilityScore, listingScore, priceCompetitivenessScore, marketShareScore, overallBrandHealth, type Platform, type PriceRow } from "@/lib/mock-data";
 import { fetchOfftakes, fetchListings, fetchVisibility, fetchPrices, fetchFairShares, toPriceRows } from "@/lib/api/queries";
@@ -93,6 +94,48 @@ function BrandHealthPage() {
         <span className="flex items-center gap-1.5"><span className="size-2.5 rounded bg-warning/60" /> 40–70</span>
         <span className="flex items-center gap-1.5"><span className="size-2.5 rounded bg-success/40" /> &gt;70</span>
       </div>
+
+      <Accordion type="single" collapsible className="mt-6">
+        <AccordionItem value="formula" className="border rounded-lg px-4">
+          <AccordionTrigger className="text-sm font-medium py-3 hover:no-underline">
+            How scores are calculated
+          </AccordionTrigger>
+          <AccordionContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 pb-2 text-sm">
+              <FormulaRow
+                title="Visibility score"
+                formula="For each keyword × platform: rank 1–3 = 100 pts · 4–10 = 80 pts · 11–20 = 55 pts · 21–50 = 25 pts · not ranked = 0 pts. Final score = average across all keyword × platform combinations."
+              />
+              <FormulaRow
+                title="Listing health score"
+                formula="(Listed SKUs ÷ Total tracked SKUs) × 100. Counted across all platforms for the brand."
+              />
+              <FormulaRow
+                title="Price competitiveness score"
+                formula="Average discount depth per SKU × platform: (1 − selling price ÷ MRP) × 250, capped at 100. A deeper discount means a higher score."
+              />
+              <FormulaRow
+                title="Market share score"
+                formula="If actual share ≥ fair-share target: 100 pts. Each percentage-point below the fair-share target subtracts 5 pts, with a floor of 0."
+              />
+              <FormulaRow
+                title="Overall score"
+                formula="Simple unweighted average of Visibility + Listing health + Price competitiveness + Market share."
+                className="md:col-span-2"
+              />
+            </div>
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
+    </div>
+  );
+}
+
+function FormulaRow({ title, formula, className }: { title: string; formula: string; className?: string }) {
+  return (
+    <div className={className}>
+      <div className="font-medium text-foreground mb-0.5">{title}</div>
+      <div className="text-xs text-muted-foreground leading-relaxed">{formula}</div>
     </div>
   );
 }

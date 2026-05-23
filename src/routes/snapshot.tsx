@@ -25,14 +25,17 @@ function SnapshotPage() {
 
   return (
     <div>
-      <PageHeader title="Platform snapshot" />
+      <PageHeader
+        title="Platform snapshot"
+        subtitle="All figures show Haleon's offtake performance. GMV = Qty × Offtake MRP. Periods are calendar months."
+      />
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
         {PLATFORMS.map((p) => {
           const m  = getMetric(p, period);
           const pm = prev ? getMetric(p, prev) : null;
           if (!m) return null;
           const metrics = [
-            { key: "GMV",   v: formatINR(m.gmv),         d: pm ? deltaPct(m.gmv,   pm.gmv)   : 0 },
+            { key: "Haleon GMV on platform", v: formatINR(m.gmv), d: pm ? deltaPct(m.gmv, pm.gmv) : 0 },
             { key: "MAU",   v: formatNum(m.mau),         d: pm ? deltaPct(m.mau,   pm.mau)   : 0 },
             { key: "AOV",   v: `₹${m.aov}`,              d: pm ? deltaPct(m.aov,   pm.aov)   : 0 },
             { key: "Reach", v: formatPct(m.reach * 100), d: pm ? deltaPct(m.reach, pm.reach) : 0 },
@@ -64,7 +67,7 @@ function SnapshotPage() {
           <Card key={metric}>
             <CardHeader className="pb-1">
               <CardTitle className="text-sm capitalize">
-                {metric === "gmv" ? "GMV" : metric === "mau" ? "MAU" : metric === "aov" ? "AOV" : "Reach"} · 12 months
+                {metric === "gmv" ? "Haleon GMV" : metric === "mau" ? "MAU" : metric === "aov" ? "AOV" : "Reach"} · 12 months
               </CardTitle>
             </CardHeader>
             <CardContent className="h-40">
