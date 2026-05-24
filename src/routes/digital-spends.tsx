@@ -146,6 +146,12 @@ function DigitalSpendsPage() {
     ? (DS_BRAND_LABEL[bestBrand.brandId] ?? brands.find((b) => b.id === bestBrand.brandId)?.name ?? bestBrand.brandId)
     : "—";
 
+  // Unique brand IDs active across all periods (for the ROAS trend chart)
+  const activeBrandIds = useMemo(
+    () => [...new Set(chartRows.map((r) => r.brandId))],
+    [chartRows],
+  );
+
   // ── ROAS trend line chart data (all periods, one series per brand) ─────────
   const roasTrendData = useMemo(() => {
     return allPeriods.map((p) => {
@@ -168,12 +174,6 @@ function DigitalSpendsPage() {
       })
       .sort((a, b) => b.spend - a.spend);
   }, [periodRows]);
-
-  // Unique brand IDs active across all periods (for the ROAS trend chart)
-  const activeBrandIds = useMemo(
-    () => [...new Set(chartRows.map((r) => r.brandId))],
-    [chartRows],
-  );
 
   return (
     <div>
