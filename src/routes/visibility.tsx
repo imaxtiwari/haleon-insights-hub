@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useState, useMemo } from "react";
-import { brands, brandKeywords, PLATFORMS, PLATFORM_LABEL, periods, prevPeriod, latestPeriodWithData } from "@/lib/mock-data";
+import { brands, brandKeywords, PLATFORMS, PLATFORM_LABEL, prevPeriod, latestPeriodWithData } from "@/lib/mock-data";
 import { fetchVisibility } from "@/lib/api/queries";
 import { usePeriod } from "@/lib/period-context";
 import { cn } from "@/lib/utils";
@@ -41,6 +41,12 @@ function VisibilityPage() {
     [visibility, period],
   );
   const isSnapshot = effectivePeriod !== period;
+
+  // Periods that have at least one visibility row — used for the trend chart
+  const chartPeriods = useMemo(
+    () => [...new Set(visibility.map((v) => v.period ?? v.weekEnding.slice(0, 7)))].sort(),
+    [visibility],
+  );
 
   const kws  = brandKeywords[brandId];
   const prev = prevPeriod(effectivePeriod);
@@ -115,7 +121,7 @@ function VisibilityPage() {
                     <TableRow key={`${kw}-x`}>
                       <TableCell colSpan={1 + PLATFORMS.length} className="bg-muted/20 h-56 p-3">
                         <ResponsiveContainer width="100%" height="100%">
-                          <LineChart data={periods.map((per) => {
+                          <LineChart data={chartPeriods.map((per) => {
                             const row: Record<string, number | string | null> = { w: fmtPeriodShort(per) };
                             PLATFORMS.forEach((p) => {
                               const v = visibility.find((x) => x.brandId === brandId && x.keyword === kw && x.platform === p && mp(x.period, x.weekEnding, per));

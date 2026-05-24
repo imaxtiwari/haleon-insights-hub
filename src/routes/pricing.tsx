@@ -7,7 +7,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useState, useMemo } from "react";
-import { skus, competitorSkus, brands, categories, PLATFORMS, PLATFORM_LABEL, periods, prevPeriod, deltaPct, latestPeriodWithData, type Platform } from "@/lib/mock-data";
+import { skus, competitorSkus, brands, categories, PLATFORMS, PLATFORM_LABEL, prevPeriod, deltaPct, latestPeriodWithData, type Platform } from "@/lib/mock-data";
 import { fetchPrices, type DbPriceRow } from "@/lib/api/queries";
 import { usePeriod } from "@/lib/period-context";
 import { Info } from "lucide-react";
@@ -171,7 +171,13 @@ function PriceDetail({ id, kind, period, priceRows }: { id: string; kind: ItemKi
   const item = kind === "sku" ? skus.find((s) => s.id === id) : competitorSkus.find((c) => c.id === id);
   if (!item) return null;
 
-  const chartData = periods.map((per) => {
+  // Only render periods that have actual price data (avoids sparse single-dot charts)
+  const chartPeriods = useMemo(
+    () => [...new Set(priceRows.map((r) => r.period ?? r.weekEnding.slice(0, 7)))].sort(),
+    [priceRows],
+  );
+
+  const chartData = chartPeriods.map((per) => {
     const row: Record<string, number | string> = { w: fmtPeriodShort(per) };
     PLATFORMS.forEach((p) => {
       const r = priceRows.find((x) => x.itemId === id && x.itemKind === kind && x.platform === p && mp(x.period, x.weekEnding, per));
