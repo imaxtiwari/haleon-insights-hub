@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { usePeriod } from "@/lib/period-context";
 import { PLATFORMS, PLATFORM_LABEL, prevPeriod, deltaPct, periods, type Platform } from "@/lib/mock-data";
 import { fetchPlatformMetrics } from "@/lib/api/queries";
@@ -8,6 +9,77 @@ import { formatINR, formatNum, formatPct, formatDelta, fmtPeriod, fmtPeriodShort
 import { ArrowDownRight, ArrowUpRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { LineChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+
+// ── Static platform benchmark data (industry figures, FY25) ──────────────────
+// `sub` renders as a second muted line below the main value
+type BenchmarkCell = { value: string; sub?: string; note?: string; dim?: boolean };
+type BenchmarkRow  = { metric: string; cells: Record<Platform, BenchmarkCell> };
+
+const BENCHMARK_ROWS: BenchmarkRow[] = [
+  {
+    metric: "FY25 Revenue (Rs Cr)",
+    cells: {
+      tata_1mg:        { value: "Rs 2,360 Cr" },
+      pharmeasy:       { value: "~Rs 1,500 Cr", note: "*" },
+      amazon_pharmacy: { value: "Sizing TBD", dim: true },
+      zepto:           { value: "Rs 480 Cr" },
+    },
+  },
+  {
+    metric: "Market share of e-pharma",
+    cells: {
+      tata_1mg:        { value: "31%" },
+      pharmeasy:       { value: "15%" },
+      amazon_pharmacy: { value: "<5% est", dim: true },
+      zepto:           { value: "5%" },
+    },
+  },
+  {
+    metric: "Growth WoW FY25",
+    cells: {
+      tata_1mg:        { value: "22% YoY FY25", sub: "3,000 stores by 2029" },
+      pharmeasy:       { value: "Pharma-only declining", dim: true },
+      amazon_pharmacy: { value: "Launched Apr 2026", dim: true },
+      zepto:           { value: "Pilot, scaling" },
+    },
+  },
+  {
+    metric: "Reach",
+    cells: {
+      tata_1mg:        { value: "Pan-India", sub: "+280 stores (1,000 by 2030)" },
+      pharmeasy:       { value: "16,500+ pincodes", sub: "(3,500 cities)" },
+      amazon_pharmacy: { value: "19,000+ pincodes", sub: "Same-day in 23 cities" },
+      zepto:           { value: "6 cities Rx", sub: "(Q-comm OTC nationwide)" },
+    },
+  },
+  {
+    metric: "OTC : Rx mix",
+    cells: {
+      tata_1mg:        { value: "40 : 60" },
+      pharmeasy:       { value: "20 : 80" },
+      amazon_pharmacy: { value: "25 : 75" },
+      zepto:           { value: "70 : 30" },
+    },
+  },
+  {
+    metric: "Avg Order Value (AOV)",
+    cells: {
+      tata_1mg:        { value: "Rs 1,200" },
+      pharmeasy:       { value: "Rs 2,500" },
+      amazon_pharmacy: { value: "Rs 900" },
+      zepto:           { value: "Rs 400" },
+    },
+  },
+  {
+    metric: "Daily orders / volume",
+    cells: {
+      tata_1mg:        { value: "15,000+ pincodes", sub: "in 25 cities" },
+      pharmeasy:       { value: "~20,000 orders/day" },
+      amazon_pharmacy: { value: "~30,000 orders/day" },
+      zepto:           { value: "Q-comm overall: 20K+ orders/day", sub: "(~1 to 4% pharma)" },
+    },
+  },
+];
 
 export const Route = createFileRoute("/snapshot")({
   loader: () => fetchPlatformMetrics(),
@@ -102,6 +174,60 @@ function SnapshotPage() {
           </div>
         ))}
       </div>
+
+      {/* ── Platform benchmark table ───────────────────────────────────────── */}
+      <Card className="mt-8">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">Platform benchmark — industry context</CardTitle>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            FY25 industry figures · not Haleon-specific · for strategic context only
+          </p>
+        </CardHeader>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-44">Metric</TableHead>
+                {PLATFORMS.map((p) => (
+                  <TableHead key={p} className="text-left">{PLATFORM_LABEL[p]}</TableHead>
+                ))}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {BENCHMARK_ROWS.map((row) => (
+                <TableRow key={row.metric}>
+                  <TableCell className="font-semibold text-sm align-top py-2">{row.metric}</TableCell>
+                  {PLATFORMS.map((p) => {
+                    const cell = row.cells[p];
+                    return (
+                      <TableCell
+                        key={p}
+                        className={cn(
+                          "text-sm align-top py-2",
+                          cell.dim && "text-muted-foreground italic",
+                        )}
+                      >
+                        <span className="tabular-nums">
+                          {cell.value}
+                          {cell.note && (
+                            <sup className="ml-0.5 text-[10px] text-muted-foreground">{cell.note}</sup>
+                          )}
+                        </span>
+                        {cell.sub && (
+                          <div className="text-xs text-muted-foreground mt-0.5 not-italic">{cell.sub}</div>
+                        )}
+                      </TableCell>
+                    );
+                  })}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+      <p className="mt-2 text-[11px] text-muted-foreground">
+        * PharmEasy revenue includes B2B + B2C; pharma-only segment is declining. All figures sourced from public filings, press releases, and industry estimates.
+      </p>
     </div>
   );
 }

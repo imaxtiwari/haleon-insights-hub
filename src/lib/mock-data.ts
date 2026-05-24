@@ -557,6 +557,42 @@ export function setFairShare(brandId: string, platform: Platform, value: number)
   fairShareMap.set(`${brandId}|${platform}`, Math.max(0, Math.min(100, value)));
 }
 
+// ==== Category-level market share actuals (from Haleon data, Apr 2026) ====
+// null = Amazon Pharmacy data not yet available
+export const CATEGORY_MARKET_SHARE: Record<string, Partial<Record<Platform, number | null>>> = {
+  oral:    { tata_1mg: 5,    pharmeasy: 24.5,  zepto: 60.3,  amazon_pharmacy: null },
+  mvm:     { tata_1mg: 6,    pharmeasy: 2.76,  zepto: 13.4,  amazon_pharmacy: null },
+  pain:    { tata_1mg: 3,    pharmeasy: 3,     zepto: 7.4,   amazon_pharmacy: null },
+  cold:    { tata_1mg: 8,    pharmeasy: 47.6,  zepto: 9,     amazon_pharmacy: null },
+  antacid: { tata_1mg: 12,   pharmeasy: 4.73,  zepto: 14.9,  amazon_pharmacy: null },
+};
+
+// Fair share target = the highest actual share seen across platforms (the best-in-class benchmark)
+export const CATEGORY_FAIR_SHARE: Record<string, number> = {
+  oral:    60.3,
+  mvm:     13.4,
+  pain:    7.4,
+  cold:    47.6,
+  antacid: 14.9,
+};
+
+// Gap in Rs Cr — pre-computed; "Track" = data insufficient to compute
+export const CATEGORY_GAP_DISPLAY: Record<string, string> = {
+  oral:    "Rs 5.7 Cr",
+  mvm:     "Rs 1.0 Cr",
+  pain:    "Track",
+  cold:    "Rs 8.9 Cr",
+  antacid: "Rs 0.5 Cr",
+};
+
+export const CATEGORY_DISPLAY_NAME: Record<string, string> = {
+  oral:    "Oral Care (Paste, Brush, MW, Paro, Pron)",
+  mvm:     "VMS (Centrum + Ostocalcium)",
+  pain:    "Pain Relief (Iodex)",
+  cold:    "Respiratory (Otrivin)",
+  antacid: "Digestive (Eno)",
+};
+
 // ==== Aggregation helpers ====
 export function skuById(id: string) { return skus.find((s) => s.id === id)!; }
 export function brandById(id: string) { return brands.find((b) => b.id === id)!; }

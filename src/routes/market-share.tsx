@@ -1,176 +1,162 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { PageHeader } from "@/components/page-header";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useMemo, useState } from "react";
-import { brands, PLATFORMS, PLATFORM_LABEL, brandMarketShare, categoryGMV, type Platform } from "@/lib/mock-data";
-import { fetchOfftakes, fetchFairShares, fetchMarketShare, updateFairShare } from "@/lib/api/queries";
-import { usePeriod } from "@/lib/period-context";
-import { formatINR } from "@/lib/format";
+import { Badge } from "@/components/ui/badge";
+import {
+  CATEGORY_MARKET_SHARE,
+  CATEGORY_FAIR_SHARE,
+  CATEGORY_GAP_DISPLAY,
+  CATEGORY_DISPLAY_NAME,
+  type Platform,
+} from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/market-share")({
-  loader: async ({ context: _ctx }) => {
-    // period is not yet known at load time (it lives in client context),
-    // so we fetch the latest available period from DB as a hint.
-    // The heavy filtering is done client-side once period is available.
-    const [offtakes, fairShares] = await Promise.all([fetchOfftakes(), fetchFairShares()]);
-    return { offtakes, fairShares };
-  },
   component: MarketSharePage,
 });
 
-type Row = { brandId: string; brandName: string; platform: Platform; ms: number; fs: number; gap: number; opp: number; catGmv: number };
+// Ordered category rows (matches the screenshot layout)
+const CATEGORY_ORDER = ["oral", "mvm", "pain", "cold", "antacid"] as const;
+
+// Platforms that have real data vs TBD — Amazon excluded per business decision
+const DATA_PLATFORMS: Platform[] = ["tata_1mg", "pharmeasy", "zepto"];
+
+type ColDef = { platform: Platform; label: string; hasData: boolean };
+const COLUMNS: ColDef[] = [
+  { platform: "tata_1mg",        label: "1mg",             hasData: true  },
+  { platform: "pharmeasy",       label: "PharmEasy",       hasData: true  },
+  { platform: "amazon_pharmacy", label: "Amazon Pharmacy", hasData: false },
+  { platform: "zepto",           label: "Zepto",           hasData: true  },
+];
 
 function MarketSharePage() {
-  const { offtakes, fairShares } = Route.useLoaderData();
-  const { period } = usePeriod();
-  const [platform, setPlatform] = useState<Platform | "all">("all");
-
-  // Real market share data fetched per (period, platform) — starts empty, populated on first render
-  const [dbMsRows, setDbMsRows] = useState<Array<{ brandId: string; platform: Platform; sharePct: number }>>([]);
-  const [dbPeriod, setDbPeriod] = useState<string>("");
-
-  // Fetch from DB whenever period changes
-  useMemo(() => {
-    if (!period) return;
-    if (period === dbPeriod) return;
-    fetchMarketShare({ data: { period, platform: "all" } })
-      .then((rows) => {
-        setDbMsRows(rows);
-        setDbPeriod(period);
-      })
-      .catch(() => {
-        // DB fetch failed — keep using mock data (already the default)
-        setDbMsRows([]);
-        setDbPeriod(period);
-      });
-  }, [period]);
-
-  // Build a lookup: "brandId|platform" → share_pct from DB
-  const dbMsMap = useMemo(() => {
-    const m = new Map<string, number>();
-    dbMsRows.forEach((r) => m.set(`${r.brandId}|${r.platform}`, r.sharePct));
-    return m;
-  }, [dbMsRows]);
-
-  const usingRealData = dbMsRows.length > 0;
-
-  const [fsMap, setFsMap] = useState<Map<string, number>>(
-    () => new Map(fairShares.map((r) => [`${r.brandId}|${r.platform}`, r.targetPct])),
-  );
-
-  async function handleFairShareBlur(brandId: string, p: Platform, raw: string) {
-    const val = Math.max(0, Math.min(100, Number(raw)));
-    setFsMap((prev) => new Map(prev).set(`${brandId}|${p}`, val));
-    await updateFairShare({ data: { brandId, platform: p, targetPct: val } });
-  }
-
-  const allRows: Row[] = useMemo(() => {
-    const out: Row[] = [];
-    brands.forEach((b) => PLATFORMS.forEach((p) => {
-      // Prefer real DB share%, fall back to mock estimate
-      const ms = dbMsMap.has(`${b.id}|${p}`)
-        ? dbMsMap.get(`${b.id}|${p}`)!
-        : brandMarketShare(b.id, p, period, offtakes);
-
-      const fs  = fsMap.get(`${b.id}|${p}`) ?? 20;
-      const cat = categoryGMV(b.categoryId, p, period, offtakes);
-      const opp = Math.max(0, ((fs - ms) / 100) * cat);
-      out.push({ brandId: b.id, brandName: b.name, platform: p, ms, fs, gap: ms - fs, opp, catGmv: cat });
-    }));
-    return out.sort((a, b) => b.opp - a.opp);
-  }, [period, offtakes, fsMap, dbMsMap]);
-
-  const totalsPerPlatform = PLATFORMS.map((p) => ({
-    p, opp: allRows.filter((r) => r.platform === p).reduce((a, r) => a + r.opp, 0),
-  }));
-
-  const rows = platform === "all" ? allRows : allRows.filter((r) => r.platform === platform);
-  const showPlatformCol = platform === "all";
-  const filteredTotal   = rows.reduce((a, r) => a + r.opp, 0);
+  // Aggregate totals for the summary strip
+  const totalGap = Object.values(CATEGORY_GAP_DISPLAY)
+    .filter((v) => v !== "Track")
+    .map((v) => parseFloat(v.replace(/[^\d.]/g, "")))
+    .reduce((a, b) => a + b, 0);
 
   return (
     <div>
       <PageHeader title="Market share & fair share" />
 
-      {usingRealData && (
-        <p className="text-xs text-emerald-600 mb-3">
-          ✓ Showing real market share data for {period}
-        </p>
-      )}
-
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
-        {totalsPerPlatform.map((t) => (
-          <Card key={t.p}>
-            <CardHeader className="pb-1"><CardTitle className="text-sm">{PLATFORM_LABEL[t.p]}</CardTitle></CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold tabular-nums">{formatINR(t.opp)}</div>
-              <div className="text-xs text-muted-foreground">Total opportunity (per month)</div>
-            </CardContent>
-          </Card>
-        ))}
+      {/* Summary strip */}
+      <div className="flex flex-wrap items-center gap-3 mb-6">
+        <div className="rounded-md border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+          Source: Platform data · Apr 2026
+        </div>
+        <div className="rounded-md border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
+          Amazon Pharmacy share data not yet available — showing TBD
+        </div>
+        <div className="ml-auto rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs font-semibold text-destructive">
+          Total identified gap: Rs {totalGap.toFixed(1)} Cr
+        </div>
       </div>
-
-      <div className="flex gap-3 mb-3">
-        <Select value={platform} onValueChange={(v) => setPlatform(v as Platform | "all")}>
-          <SelectTrigger className="h-8 w-48 text-xs"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all" className="text-xs">All platforms</SelectItem>
-            {PLATFORMS.map((p) => <SelectItem key={p} value={p} className="text-xs">{PLATFORM_LABEL[p]}</SelectItem>)}
-          </SelectContent>
-        </Select>
-      </div>
-
-      {platform !== "all" && (
-        <p className="text-xs text-muted-foreground mb-2">
-          Showing {rows.length} brand{rows.length !== 1 ? "s" : ""} on {PLATFORM_LABEL[platform]} · total opportunity {formatINR(filteredTotal)}
-        </p>
-      )}
 
       <Card>
         <CardContent className="p-0">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Brand</TableHead>
-                {showPlatformCol && <TableHead>Platform</TableHead>}
-                <TableHead className="text-right">
-                  Market Share %
-                  {!usingRealData && <span className="ml-1 text-amber-500 text-[10px]">(est.)</span>}
-                </TableHead>
-                <TableHead className="text-right">Fair Share %</TableHead>
-                <TableHead className="text-right">Gap (pp)</TableHead>
-                <TableHead className="text-right">Opportunity</TableHead>
+                <TableHead className="w-72">Category (Haleon brands)</TableHead>
+                {COLUMNS.map((c) => (
+                  <TableHead key={c.platform} className="text-center">
+                    {c.label}
+                  </TableHead>
+                ))}
+                <TableHead className="text-center">Fair Share %</TableHead>
+                <TableHead className="text-right">Gap (Rs Cr)</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {rows.map((r) => (
-                <TableRow key={`${r.brandId}-${r.platform}`} className="h-10">
-                  <TableCell className="font-medium">{r.brandName}</TableCell>
-                  {showPlatformCol && <TableCell className="text-muted-foreground text-xs">{PLATFORM_LABEL[r.platform]}</TableCell>}
-                  <TableCell className="text-right tabular-nums">{r.ms.toFixed(1)}%</TableCell>
-                  <TableCell className="text-right">
-                    <Input
-                      type="number"
-                      step={0.5}
-                      defaultValue={r.fs}
-                      onBlur={(e) => { void handleFairShareBlur(r.brandId, r.platform, e.target.value); }}
-                      className="h-7 w-20 text-right text-xs tabular-nums ml-auto"
-                    />
-                  </TableCell>
-                  <TableCell className={cn("text-right tabular-nums font-semibold", r.gap < 0 ? "text-destructive" : "text-success")}>
-                    {r.gap >= 0 ? "+" : ""}{r.gap.toFixed(1)}
-                  </TableCell>
-                  <TableCell className="text-right tabular-nums font-bold">{formatINR(r.opp)}</TableCell>
-                </TableRow>
-              ))}
+              {CATEGORY_ORDER.map((catId) => {
+                const ms   = CATEGORY_MARKET_SHARE[catId] ?? {};
+                const fs   = CATEGORY_FAIR_SHARE[catId]   ?? 0;
+                const gap  = CATEGORY_GAP_DISPLAY[catId]  ?? "—";
+                const name = CATEGORY_DISPLAY_NAME[catId] ?? catId;
+
+                // The platform leader is whichever has the highest actual share
+                const dataVals = DATA_PLATFORMS.map((p) => ms[p] ?? 0);
+                const maxShare = Math.max(...dataVals);
+
+                return (
+                  <TableRow key={catId} className="h-12">
+                    {/* Category name */}
+                    <TableCell className="font-medium text-sm">{name}</TableCell>
+
+                    {/* Per-platform share cells */}
+                    {COLUMNS.map((col) => {
+                      if (!col.hasData) {
+                        return (
+                          <TableCell key={col.platform} className="text-center">
+                            <Badge
+                              variant="outline"
+                              className="text-[10px] text-muted-foreground/50 border-muted-foreground/20"
+                            >
+                              TBD
+                            </Badge>
+                          </TableCell>
+                        );
+                      }
+                      const share    = ms[col.platform];
+                      const isLeader = share != null && share > 0 && share === maxShare;
+                      return (
+                        <TableCell key={col.platform} className="text-center">
+                          {share != null ? (
+                            <span
+                              className={cn(
+                                "inline-flex items-center justify-center rounded px-2 py-0.5 text-sm tabular-nums font-semibold min-w-[3.5rem]",
+                                isLeader
+                                  ? "bg-success/15 text-success"
+                                  : "text-foreground",
+                              )}
+                            >
+                              {share}%
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground text-xs">—</span>
+                          )}
+                        </TableCell>
+                      );
+                    })}
+
+                    {/* Fair share */}
+                    <TableCell className="text-center">
+                      <span className="font-semibold tabular-nums text-sm">{fs}%</span>
+                    </TableCell>
+
+                    {/* Gap */}
+                    <TableCell className="text-right">
+                      {gap === "Track" ? (
+                        <span className="text-muted-foreground text-xs italic">Track</span>
+                      ) : (
+                        <span className="font-bold tabular-nums text-destructive">{gap}</span>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </CardContent>
       </Card>
+
+      {/* Legend */}
+      <div className="mt-4 flex flex-wrap gap-5 text-xs text-muted-foreground">
+        <div className="flex items-center gap-1.5">
+          <div className="size-3 rounded-sm bg-success/15 border border-success/30" />
+          <span>Category leader — highest Haleon share on that platform</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="font-semibold text-foreground/60">Fair Share %</span>
+          <span>= best-in-class platform share (benchmark target)</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="italic">Track</span>
+          <span>= data insufficient to compute opportunity</span>
+        </div>
+      </div>
     </div>
   );
 }

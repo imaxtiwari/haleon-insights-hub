@@ -19,7 +19,7 @@ function mp(rowPeriod: string | undefined, weekEnding: string, period: string) {
   return (rowPeriod ?? weekEnding.slice(0, 7)) === period;
 }
 
-function platformTotals(platform: Platform, period: string, allListings: ListingRow[]) {
+function platformTotals(platform: Platform, period: string, allListings: ListingRow[], effectivePeriod: string) {
   const rows    = allListings.filter((l) => l.platform === platform && mp(l.period, l.weekEnding, effectivePeriod));
   const total   = rows.length;
   const listed  = rows.filter((r) => r.status === "listed").length;
@@ -49,7 +49,7 @@ function ListingsPage() {
       )}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
         {PLATFORMS.map((p) => {
-          const t = platformTotals(p, period, listings);
+          const t = platformTotals(p, period, listings, effectivePeriod);
           return (
             <Card key={p}>
               <CardHeader className="pb-2"><CardTitle className="text-sm">{PLATFORM_LABEL[p]}</CardTitle></CardHeader>
