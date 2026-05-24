@@ -3,11 +3,11 @@ import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { useState } from "react";
-import { brands, skus, PLATFORMS, PLATFORM_LABEL, prevPeriod, type Platform, type ListingRow } from "@/lib/mock-data";
+import { useState, useMemo } from "react";
+import { brands, skus, PLATFORMS, PLATFORM_LABEL, prevPeriod, latestPeriodWithData, type Platform, type ListingRow } from "@/lib/mock-data";
 import { fetchListings } from "@/lib/api/queries";
 import { usePeriod } from "@/lib/period-context";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronRight, Info } from "lucide-react";
 
 export const Route = createFileRoute("/listings")({
   loader: () => fetchListings(),
@@ -30,15 +30,27 @@ function platformTotals(platform: Platform, period: string, allListings: Listing
 function ListingsPage() {
   const listings = Route.useLoaderData();
   const { period } = usePeriod();
-  const prev = prevPeriod(period);
   const [expanded, setExpanded] = useState<string | null>(null);
+
+  const effectivePeriod = useMemo(
+    () => latestPeriodWithData(listings, period),
+    [listings, period],
+  );
+  const isSnapshot = effectivePeriod !== period;
+  const prev = prevPeriod(effectivePeriod);
 
   return (
     <div>
       <PageHeader title="Listing health" />
+      {isSnapshot && (
+        <div className="mb-4 flex items-center gap-2 text-xs bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 rounded-md px-3 py-2">
+          <Info className="size-3.5 shrink-0" />
+          No listing data for {period} — showing latest snapshot ({effectivePeriod})
+        </div>
+      )}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
         {PLATFORMS.map((p) => {
-          const t = platformTotals(p, period, listings);
+          const t = platformTotals(p, effectivePeriod, listings);
           return (
             <Card key={p}>
               <CardHeader className="pb-2"><CardTitle className="text-sm">{PLATFORM_LABEL[p]}</CardTitle></CardHeader>
@@ -72,7 +84,7 @@ function ListingsPage() {
             <TableBody>
               {brands.map((b) => {
                 const brandSkuIds = skus.filter((s) => s.brandId === b.id).map((s) => s.id);
-                const rows     = listings.filter((l) => brandSkuIds.includes(l.skuId) && mp(l.period, l.weekEnding, period));
+                const rows     = listings.filter((l) => brandSkuIds.includes(l.skuId) && mp(l.period, l.weekEnding, effectivePeriod));
                 const listed   = rows.filter((r) => r.status === "listed").length;
                 const pct      = rows.length ? (listed / rows.length) * 100 : 0;
                 const prevRows = prev ? listings.filter((l) => brandSkuIds.includes(l.skuId) && mp(l.period, l.weekEnding, prev)) : [] as ListingRow[];

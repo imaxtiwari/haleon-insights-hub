@@ -6,10 +6,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useState } from "react";
-import { skus, competitorSkus, brands, categories, PLATFORMS, PLATFORM_LABEL, periods, prevPeriod, deltaPct, type Platform } from "@/lib/mock-data";
+import { useState, useMemo } from "react";
+import { skus, competitorSkus, brands, categories, PLATFORMS, PLATFORM_LABEL, periods, prevPeriod, deltaPct, latestPeriodWithData, type Platform } from "@/lib/mock-data";
 import { fetchPrices, type DbPriceRow } from "@/lib/api/queries";
 import { usePeriod } from "@/lib/period-context";
+import { Info } from "lucide-react";
 import { formatDelta, fmtPeriodShort } from "@/lib/format";
 import { ArrowDown, ArrowUp } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -32,6 +33,12 @@ function PricingPage() {
   const [brandId, setBrandId] = useState("all");
   const [categoryId, setCategoryId] = useState("all");
 
+  const effectivePeriod = useMemo(
+    () => latestPeriodWithData(priceRows, period),
+    [priceRows, period],
+  );
+  const isSnapshot = effectivePeriod !== period;
+
   const activeBrand       = brands.find((b) => b.id === brandId);
   const activeCategoryId  = categoryId;
   const activeCategory    = categories.find((c) => c.id === activeCategoryId);
@@ -51,6 +58,12 @@ function PricingPage() {
   return (
     <div>
       <PageHeader title="Price tracking" />
+      {isSnapshot && (
+        <div className="mb-4 flex items-center gap-2 text-xs bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 rounded-md px-3 py-2">
+          <Info className="size-3.5 shrink-0" />
+          No pricing data for {period} — showing latest snapshot ({effectivePeriod})
+        </div>
+      )}
       <div className="flex gap-3 mb-4">
         <Select value={brandId} onValueChange={handleBrandChange}>
           <SelectTrigger className="h-8 w-44 text-xs"><SelectValue placeholder="All brands" /></SelectTrigger>
@@ -73,10 +86,10 @@ function PricingPage() {
           <TabsTrigger value="comp">Competitor SKUs</TabsTrigger>
         </TabsList>
         <TabsContent value="haleon">
-          <PriceTable priceRows={priceRows} kind="sku"  period={period} brandId={brandId} categoryId={activeCategoryId} brandLabel={brandLabel} categoryLabel={categoryLabel} />
+          <PriceTable priceRows={priceRows} kind="sku"  period={effectivePeriod} brandId={brandId} categoryId={activeCategoryId} brandLabel={brandLabel} categoryLabel={categoryLabel} />
         </TabsContent>
         <TabsContent value="comp">
-          <PriceTable priceRows={priceRows} kind="comp" period={period} brandId={brandId} categoryId={activeCategoryId} brandLabel={brandLabel} categoryLabel={categoryLabel} />
+          <PriceTable priceRows={priceRows} kind="comp" period={effectivePeriod} brandId={brandId} categoryId={activeCategoryId} brandLabel={brandLabel} categoryLabel={categoryLabel} />
         </TabsContent>
       </Tabs>
     </div>
