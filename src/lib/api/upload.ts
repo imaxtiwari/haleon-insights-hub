@@ -621,3 +621,74 @@ export const processPOUpload = createServerFn({ method: "POST" })
 
     return { committed, skipped };
   });
+
+// ── Platform metrics upload (MAU + AOV upsert) ────────────────────────────────
+
+const PLAT_ALIASES: Record<string, string> = {
+  "1mg": "tata_1mg", "tata1mg": "tata_1mg", "tata_1mg": "tata_1mg", "tata 1mg": "tata_1mg",
+  "pharmeasy": "pharmeasy", "pharm easy": "pharmeasy",
+  "amazon": "amazon_pharmacy", "amazon pharmacy": "amazon_pharmacy", "amazon_pharmacy": "amazon_pharmacy",
+  "zepto": "zepto", "zepto pharmacy": "zepto",
+};
+
+function periodToWeekEnding(period: string): string {
+  const [y, m] = period.trim().split("-").map(Number);
+  const lastDay = new Date(y, m, 0).getDate();
+  return `${period.trim()}-${String(lastDay).padStart(2, "0")}`;
+}
+
+export type MetricsRow = { platform: string; period: string; mau: number; aov: number; weekEnding: string };
+export type MetricsPreview = { rows: MetricsRow[]; errors: string[] };
+
+export function parseMetricsCSV(csvText: string): MetricsPreview {
+  const lines = csvText.trim().split(/\r?\n/).filter(Boolean);
+  const errors: string[] = [];
+  const rows: MetricsRow[] = [];
+
+  // Find header
+  const header = lines[0].toLowerCase().split(",").map((h) => h.trim());
+  const col = (name: string) => header.findIndex((h) => h.includes(name));
+  const pI = col("platform"), perI = col("period"), mI = col("mau"), aI = col("aov");
+  if ([pI, perI, mI, aI].includes(-1)) {
+    errors.push(`Missing required columns. Expected: platform, period, mau, aov. Found: ${header.join(", ")}`);
+    return { rows, errors };
+  }
+
+  for (let i = 1; i < lines.length; i++) {
+    const cells = lines[i].split(",").map((c) => c.trim().replace(/^["']|["']$/g, ""));
+    const rawPlat = (cells[pI] ?? "").toLowerCase();
+    const platform = PLAT_ALIASES[rawPlat];
+    if (!platform) { errors.push(`Line ${i + 1}: unknown platform "${cells[pI]}"`); continue; }
+    const period = cells[perI] ?? "";
+    if (!/^\d{4}-\d{2}$/.test(period)) { errors.push(`Line ${i + 1}: period must be YYYY-MM, got "${period}"`); continue; }
+    const mau = Number(cells[mI]?.replace(/[^0-9.]/g, ""));
+    const aov = Number(cells[aI]?.replace(/[^0-9.]/g, ""));
+    if (isNaN(mau) || isNaN(aov)) { errors.push(`Line ${i + 1}: mau and aov must be numeric`); continue; }
+    rows.push({ platform, period, mau: Math.round(mau), aov: Math.round(aov), weekEnding: periodToWeekEnding(period) });
+  }
+  return { rows, errors };
+}
+
+export const processMetricsUpload = createServerFn({ method: "POST" })
+  .inputValidator((input: { rows: MetricsRow[] }) => input)
+  .handler(async ({ data }) => {
+    const { env } = await import("cloudflare:workers");
+    const db = env.haleon_insights_db;
+    let upserted = 0;
+
+    const stmts = data.rows.map(({ platform, weekEnding, mau, aov }) =>
+      db.prepare(
+        `INSERT INTO platform_metrics (platform, week_ending, gmv, mau, aov, reach)
+         VALUES (?, ?, 0, ?, ?, 0)
+         ON CONFLICT(platform, week_ending) DO UPDATE SET
+           mau = excluded.mau,
+           aov = excluded.aov`
+      ).bind(platform, weekEnding, mau, aov)
+    );
+
+    for (let i = 0; i < stmts.length; i += 100) {
+      await db.batch(stmts.slice(i, i + 100));
+      upserted += stmts.slice(i, i + 100).length;
+    }
+    return { upserted };
+  });

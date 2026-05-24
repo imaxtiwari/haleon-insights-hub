@@ -6,10 +6,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { PLATFORMS, PLATFORM_LABEL, latestWeek, type Platform } from "@/lib/mock-data";
-import { processUpload, processOfftakesUpload } from "@/lib/api/upload";
+import { processUpload, processOfftakesUpload, processMetricsUpload, parseMetricsCSV, type MetricsRow } from "@/lib/api/upload";
 import { fetchUploads } from "@/lib/api/queries";
 import { fmtPeriod } from "@/lib/format";
-import { UploadCloud, FileCheck2, ArrowRight, Loader2, ShoppingCart } from "lucide-react";
+import { UploadCloud, FileCheck2, ArrowRight, Loader2, ShoppingCart, BarChart2 } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 import { useState, useRef } from "react";
 import { toast } from "sonner";
 import { useRouter } from "@tanstack/react-router";
@@ -44,6 +45,13 @@ function UploadPage() {
         <h2 className="text-sm font-semibold mb-3 text-muted-foreground uppercase tracking-wide">Invoice-line offtakes</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           <OfftakesUploadCard />
+        </div>
+      </div>
+
+      <div className="mt-6">
+        <h2 className="text-sm font-semibold mb-3 text-muted-foreground uppercase tracking-wide">Platform metrics (MAU / AOV)</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          <PlatformMetricsUploadCard />
         </div>
       </div>
 
@@ -208,6 +216,163 @@ function OfftakesUploadCard() {
               {stage === "submitting"
                 ? <><Loader2 className="size-4 mr-2 animate-spin" />Uploading…</>
                 : "Commit offtakes"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </Card>
+  );
+}
+
+// ── Platform metrics upload (MAU + AOV CSV → platform_metrics) ───────────────
+
+const METRICS_EXAMPLE = `platform,period,mau,aov
+tata_1mg,2026-04,7000000,1200
+pharmeasy,2026-04,3500000,2500
+amazon_pharmacy,2026-04,5000000,900
+zepto,2026-04,12000000,400`;
+
+function PlatformMetricsUploadCard() {
+  const [csv, setCsv]   = useState("");
+  const [stage, setStage] = useState<"idle" | "preview" | "submitting">("idle");
+  const [preview, setPreview]   = useState<MetricsRow[]>([]);
+  const [parseErrors, setParseErrors] = useState<string[]>([]);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  function handleParse(text: string) {
+    const { rows, errors } = parseMetricsCSV(text);
+    setPreview(rows);
+    setParseErrors(errors);
+    if (rows.length > 0) setStage("preview");
+    else if (errors.length > 0) toast.error("Parse errors", { description: errors[0] });
+  }
+
+  async function handleCommit() {
+    setStage("submitting");
+    try {
+      const { upserted } = await processMetricsUpload({ data: { rows: preview } });
+      toast.success("Platform metrics updated", {
+        description: `${upserted} row${upserted !== 1 ? "s" : ""} upserted (MAU + AOV only; GMV and reach unchanged)`,
+        icon: <FileCheck2 className="size-4" />,
+      });
+      setStage("idle");
+      setCsv("");
+      setPreview([]);
+    } catch (e) {
+      toast.error("Upload failed", { description: e instanceof Error ? e.message : "Unknown error" });
+      setStage("idle");
+    }
+  }
+
+  const fmtNum = (n: number) =>
+    n >= 1_000_000 ? `${(n / 1_000_000).toFixed(1)}M` : n >= 1_000 ? `${(n / 1_000).toFixed(0)}K` : String(n);
+
+  return (
+    <Card className="overflow-hidden">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm flex items-center gap-2">
+          <BarChart2 className="size-4 text-muted-foreground" />
+          Platform MAU &amp; AOV
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <p className="text-xs text-muted-foreground">
+          Paste or upload a CSV with columns{" "}
+          <span className="font-mono">platform, period, mau, aov</span>.
+          Only MAU and AOV are updated — GMV and Reach are preserved.
+        </p>
+
+        {/* File drop */}
+        <div
+          onClick={() => inputRef.current?.click()}
+          onDragOver={(e) => e.preventDefault()}
+          onDrop={(e) => {
+            e.preventDefault();
+            const f = e.dataTransfer.files[0];
+            if (f) f.text().then((t) => { setCsv(t); handleParse(t); });
+          }}
+          className="border-2 border-dashed rounded-md p-4 text-center cursor-pointer hover:border-primary/50 hover:bg-accent/30 transition-colors"
+        >
+          <UploadCloud className="size-5 mx-auto text-muted-foreground" />
+          <p className="mt-1 text-xs text-muted-foreground">Drop CSV file or click to browse</p>
+        </div>
+        <input
+          ref={inputRef}
+          type="file"
+          accept=".csv,.txt"
+          className="hidden"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) f.text().then((t) => { setCsv(t); handleParse(t); });
+          }}
+        />
+
+        {/* Paste textarea */}
+        <Textarea
+          value={csv}
+          onChange={(e) => setCsv(e.target.value)}
+          placeholder={METRICS_EXAMPLE}
+          className="font-mono text-xs h-28 resize-none"
+          spellCheck={false}
+        />
+
+        {parseErrors.length > 0 && (
+          <div className="text-xs text-destructive space-y-0.5">
+            {parseErrors.map((e, i) => <p key={i}>{e}</p>)}
+          </div>
+        )}
+
+        <Button
+          size="sm"
+          className="w-full"
+          disabled={!csv.trim() || stage === "submitting"}
+          onClick={() => handleParse(csv)}
+        >
+          Preview
+        </Button>
+      </CardContent>
+
+      <Dialog open={stage === "preview" || stage === "submitting"} onOpenChange={(o) => !o && setStage("idle")}>
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Preview — {preview.length} row{preview.length !== 1 ? "s" : ""}</DialogTitle>
+          </DialogHeader>
+
+          <div className="overflow-x-auto rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Platform</TableHead>
+                  <TableHead>Period</TableHead>
+                  <TableHead className="text-right">MAU</TableHead>
+                  <TableHead className="text-right">AOV (₹)</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {preview.map((r) => (
+                  <TableRow key={`${r.platform}-${r.period}`} className="h-9">
+                    <TableCell className="font-medium text-xs">{PLATFORM_LABEL[r.platform as Platform] ?? r.platform}</TableCell>
+                    <TableCell className="text-xs">{r.period}</TableCell>
+                    <TableCell className="text-right tabular-nums text-xs">{fmtNum(r.mau)}</TableCell>
+                    <TableCell className="text-right tabular-nums text-xs">₹{r.aov.toLocaleString("en-IN")}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+
+          <p className="text-xs text-muted-foreground">
+            GMV and Reach columns will be left untouched. Existing rows are overwritten, missing rows are created with GMV=0 and Reach=0.
+          </p>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setStage("idle")} disabled={stage === "submitting"}>
+              Cancel
+            </Button>
+            <Button onClick={handleCommit} disabled={stage === "submitting"}>
+              {stage === "submitting"
+                ? <><Loader2 className="size-4 mr-2 animate-spin" />Saving…</>
+                : `Save ${preview.length} row${preview.length !== 1 ? "s" : ""}`}
             </Button>
           </DialogFooter>
         </DialogContent>

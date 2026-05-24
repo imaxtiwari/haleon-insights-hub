@@ -1,15 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import {
   BarChart, Bar, LineChart, Line,
   ResponsiveContainer, Tooltip, XAxis, YAxis, Legend, CartesianGrid,
 } from "recharts";
-import { TrendingUp, IndianRupee, Zap, Award } from "lucide-react";
-import { brands, PLATFORMS, PLATFORM_LABEL, type Platform } from "@/lib/mock-data";
+import { TrendingUp, IndianRupee, Zap, Award, Info } from "lucide-react";
+import { brands } from "@/lib/mock-data";
 import { fetchDigitalSpends, type DbDigitalSpendsRow } from "@/lib/api/queries";
 import { usePeriod } from "@/lib/period-context";
 import { formatINR, fmtPeriodShort } from "@/lib/format";
@@ -89,22 +88,27 @@ export const Route = createFileRoute("/digital-spends")({
   component: DigitalSpendsPage,
 });
 
+// Brand label overrides for digital-spends display
+// (Sensodyne stored as "paste" in DB; Centrum as "centrum"; etc.)
+const DS_BRAND_LABEL: Record<string, string> = {
+  paste:      "Sensodyne",
+  centrum:    "Centrum",
+  parodontax: "Parodontax",
+  eno:        "Eno",
+  iodex:      "Iodex",
+  otrivin:    "Otrivin + Crocin",
+};
+
 function DigitalSpendsPage() {
   const { dbRows } = Route.useLoaderData();
   const { period }  = usePeriod();
 
-  // Use real DB data if available, else mock
+  // Use real DB data if available, else mock — always tata_1mg only
   const allRows: DbDigitalSpendsRow[] = useMemo(
-    () => (dbRows.length > 0 ? dbRows : makeMockData()),
+    () => (dbRows.length > 0 ? dbRows : makeMockData()).filter((r) => r.platform === "tata_1mg"),
     [dbRows],
   );
   const usingRealData = dbRows.length > 0;
-
-  const availablePlatforms = useMemo(
-    () => [...new Set(allRows.map((r) => r.platform))] as Platform[],
-    [allRows],
-  );
-  const [platform, setPlatform] = useState<Platform | "all">("all");
 
   // Derive all periods present in data, sorted
   const allPeriods = useMemo(
@@ -112,16 +116,19 @@ function DigitalSpendsPage() {
     [allRows],
   );
 
-  // Rows for the selected platform (all periods — used for charts)
-  const chartRows = useMemo(
-    () => platform === "all" ? allRows : allRows.filter((r) => r.platform === platform),
-    [allRows, platform],
-  );
+  // Chart rows = all periods for tata_1mg
+  const chartRows = allRows;
 
   // Rows for the current period (KPI tiles + bar chart)
+  // Fall back to the latest period with data if current has none
+  const effectivePeriod = useMemo(() => {
+    if (allRows.some((r) => r.period === period)) return period;
+    return allPeriods.at(-1) ?? period;
+  }, [allRows, allPeriods, period]);
+
   const periodRows = useMemo(
-    () => chartRows.filter((r) => r.period === period),
-    [chartRows, period],
+    () => chartRows.filter((r) => r.period === effectivePeriod),
+    [chartRows, effectivePeriod],
   );
 
   // ── KPI tiles ──────────────────────────────────────────────────────────────
@@ -135,40 +142,36 @@ function DigitalSpendsPage() {
     return { brandId: best.brandId, roas: best.paidRoas };
   }, [periodRows]);
 
-  const bestBrandName = brands.find((b) => b.id === bestBrand?.brandId)?.name ?? bestBrand?.brandId ?? "—";
+  const bestBrandName = bestBrand
+    ? (DS_BRAND_LABEL[bestBrand.brandId] ?? brands.find((b) => b.id === bestBrand.brandId)?.name ?? bestBrand.brandId)
+    : "—";
 
   // ── ROAS trend line chart data (all periods, one series per brand) ─────────
   const roasTrendData = useMemo(() => {
     return allPeriods.map((p) => {
       const row: Record<string, string | number> = { period: fmtPeriodShort(p) };
-      brands.forEach((b) => {
-        const r = chartRows.find((cr) => cr.brandId === b.id && cr.period === p);
-        if (r) row[b.id] = +r.paidRoas.toFixed(2);
+      activeBrandIds.forEach((bId) => {
+        const r = chartRows.find((cr) => cr.brandId === bId && cr.period === p);
+        if (r) row[bId] = +r.paidRoas.toFixed(2);
       });
       return row;
     });
-  }, [chartRows, allPeriods]);
+  }, [chartRows, allPeriods, activeBrandIds]);
 
   // ── Spend vs Paid Sales bar chart (current period, per brand) ─────────────
   const spendSalesData = useMemo(() => {
-    return brands
-      .map((b) => {
-        const r = periodRows.find((cr) => cr.brandId === b.id);
-        return {
-          brand:  b.name.length > 12 ? b.name.slice(0, 10) + "…" : b.name,
-          brandFull: b.name,
-          spend:  r?.paidSpendInr ?? 0,
-          sales:  r?.paidSalesInr ?? 0,
-          roas:   r?.paidRoas ?? 0,
-        };
+    return periodRows
+      .map((r) => {
+        const label = DS_BRAND_LABEL[r.brandId] ?? (brands.find((b) => b.id === r.brandId)?.name ?? r.brandId);
+        const short = label.length > 13 ? label.slice(0, 11) + "…" : label;
+        return { brand: short, brandFull: label, spend: r.paidSpendInr, sales: r.paidSalesInr, roas: r.paidRoas };
       })
-      .filter((d) => d.spend > 0 || d.sales > 0)
       .sort((a, b) => b.spend - a.spend);
   }, [periodRows]);
 
-  // Brands active in chart data
-  const activeBrands = useMemo(
-    () => brands.filter((b) => chartRows.some((r) => r.brandId === b.id)),
+  // Unique brand IDs active across all periods (for the ROAS trend chart)
+  const activeBrandIds = useMemo(
+    () => [...new Set(chartRows.map((r) => r.brandId))],
     [chartRows],
   );
 
@@ -176,27 +179,34 @@ function DigitalSpendsPage() {
     <div>
       <PageHeader
         title="Digital Spends & ROAS"
-        subtitle={usingRealData ? undefined : "Showing estimated data — upload Tata 1mg file to see actuals"}
+        subtitle={usingRealData ? "Tata 1mg · Jan – Apr 2026 actuals" : "Tata 1mg · Showing estimated data"}
       />
 
-      {!usingRealData && (
-        <div className="mb-4 flex items-center gap-2 text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-md px-3 py-2 w-fit">
-          <TrendingUp className="size-3.5 shrink-0" />
-          Estimated data — run <code className="font-mono mx-1">scripts/seed_digital_spends.py</code> to load actuals
-        </div>
-      )}
+      {/* Platform availability banner */}
+      <div className="mb-5 flex items-start gap-2.5 text-xs bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 rounded-md px-3.5 py-2.5">
+        <Info className="size-3.5 shrink-0 mt-0.5" />
+        <span>
+          <span className="font-semibold">Digital spends data available for Tata 1mg only.</span>
+          {" "}PharmEasy / Zepto / Amazon data pending.
+        </span>
+      </div>
 
-      {/* Platform filter */}
-      <div className="flex gap-3 mb-6">
-        <Select value={platform} onValueChange={(v) => setPlatform(v as Platform | "all")}>
-          <SelectTrigger className="h-8 w-48 text-xs"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all" className="text-xs">All platforms</SelectItem>
-            {availablePlatforms.map((p) => (
-              <SelectItem key={p} value={p} className="text-xs">{PLATFORM_LABEL[p]}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+      {/* Platform indicator (read-only) */}
+      <div className="flex items-center gap-2 mb-6">
+        <Badge variant="secondary" className="text-xs gap-1.5 py-1 px-2.5">
+          <span className="size-1.5 rounded-full bg-emerald-500 inline-block" />
+          Tata 1mg
+        </Badge>
+        {!usingRealData && (
+          <span className="text-xs text-amber-600">
+            Estimated — upload Jan–Apr file to see actuals
+          </span>
+        )}
+        {usingRealData && effectivePeriod !== period && (
+          <span className="text-xs text-muted-foreground">
+            No data for selected period · showing {effectivePeriod}
+          </span>
+        )}
       </div>
 
       {/* KPI tiles */}
@@ -245,14 +255,17 @@ function DigitalSpendsPage() {
               />
               <Tooltip
                 contentStyle={{ fontSize: 12, borderRadius: 6 }}
-                formatter={(v, name) => [`${Number(v).toFixed(2)}×`, brands.find((b) => b.id === name)?.name ?? name]}
+                formatter={(v, name) => [
+                  `${Number(v).toFixed(2)}×`,
+                  DS_BRAND_LABEL[name as string] ?? brands.find((b) => b.id === name)?.name ?? name,
+                ]}
               />
-              {activeBrands.map((b) => (
+              {activeBrandIds.map((bId, i) => (
                 <Line
-                  key={b.id}
+                  key={bId}
                   type="monotone"
-                  dataKey={b.id}
-                  stroke={BRAND_COLORS[b.id] ?? "#94a3b8"}
+                  dataKey={bId}
+                  stroke={BRAND_COLORS[bId] ?? `hsl(${(i * 60) % 360}, 65%, 50%)`}
                   strokeWidth={2}
                   dot={false}
                   connectNulls
@@ -262,10 +275,10 @@ function DigitalSpendsPage() {
           </ResponsiveContainer>
           {/* Legend */}
           <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1.5">
-            {activeBrands.map((b) => (
-              <div key={b.id} className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <span className="size-2 rounded-full shrink-0" style={{ background: BRAND_COLORS[b.id] ?? "#94a3b8" }} />
-                {b.name}
+            {activeBrandIds.map((bId, i) => (
+              <div key={bId} className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <span className="size-2 rounded-full shrink-0" style={{ background: BRAND_COLORS[bId] ?? `hsl(${(i * 60) % 360}, 65%, 50%)` }} />
+                {DS_BRAND_LABEL[bId] ?? brands.find((b) => b.id === bId)?.name ?? bId}
               </div>
             ))}
           </div>
@@ -276,7 +289,7 @@ function DigitalSpendsPage() {
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-base">
-            Spend vs Paid Sales · {fmtPeriodShort(period)}
+            Spend vs Paid Sales · {fmtPeriodShort(effectivePeriod)}
           </CardTitle>
         </CardHeader>
         <CardContent className="h-80">
