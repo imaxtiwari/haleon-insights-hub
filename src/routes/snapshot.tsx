@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { usePeriod } from "@/lib/period-context";
 import { PLATFORMS, PLATFORM_LABEL, prevPeriod, deltaPct, periods, type Platform } from "@/lib/mock-data";
 import { fetchPlatformMetrics } from "@/lib/api/queries";
@@ -8,6 +9,59 @@ import { formatINR, formatNum, formatPct, formatDelta, fmtPeriod, fmtPeriodShort
 import { ArrowDownRight, ArrowUpRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { LineChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+
+// ── Static platform comparison table (from internal deck) ────────────────────
+const PLATFORM_ROWS: { metric: string; tata_1mg: string; pharmeasy: string; amazon_pharmacy: string; zepto: string }[] = [
+  {
+    metric:           "FY25 Revenue",
+    tata_1mg:         "Rs 2,360 Cr",
+    pharmeasy:        "~Rs 1,500 Cr*",
+    amazon_pharmacy:  "Sizing TBD",
+    zepto:            "Rs 480 Cr",
+  },
+  {
+    metric:           "Market share of e-pharma",
+    tata_1mg:         "31%",
+    pharmeasy:        "15%",
+    amazon_pharmacy:  "<5% est",
+    zepto:            "5%",
+  },
+  {
+    metric:           "Growth WoW FY25",
+    tata_1mg:         "22% YoY FY25\n3,000 stores by 2029",
+    pharmeasy:        "Pharma-only declining",
+    amazon_pharmacy:  "Launched Apr 2026",
+    zepto:            "Pilot, scaling",
+  },
+  {
+    metric:           "Reach",
+    tata_1mg:         "Pan-India\n+280 stores (1,000 by 2030)",
+    pharmeasy:        "16,500+ pincodes\n(3,500 cities)",
+    amazon_pharmacy:  "19,000+ pincodes\nSame-day in 23 cities",
+    zepto:            "6 cities Rx\n(Q-comm OTC nationwide)",
+  },
+  {
+    metric:           "OTC : Rx mix",
+    tata_1mg:         "40 : 60",
+    pharmeasy:        "20 : 80",
+    amazon_pharmacy:  "25 : 75",
+    zepto:            "70 : 30",
+  },
+  {
+    metric:           "Avg Order Value (AOV)",
+    tata_1mg:         "Rs 1,200",
+    pharmeasy:        "Rs 2,500",
+    amazon_pharmacy:  "Rs 900",
+    zepto:            "Rs 400",
+  },
+  {
+    metric:           "Daily orders / volume",
+    tata_1mg:         "15,000+ pincodes\nin 25 cities",
+    pharmeasy:        "~20,000 orders/day",
+    amazon_pharmacy:  "~30,000 orders/day",
+    zepto:            "Q-comm: 20K+ orders/day\n(~1 to 4% pharma)",
+  },
+];
 
 export const Route = createFileRoute("/snapshot")({
   loader: () => fetchPlatformMetrics(),
@@ -101,6 +155,49 @@ function SnapshotPage() {
             {PLATFORM_LABEL[p]}
           </div>
         ))}
+      </div>
+
+      {/* ── Static platform comparison ── */}
+      <div className="mt-10">
+        <h2 className="text-base font-semibold mb-1">Platform comparison</h2>
+        <p className="text-xs text-muted-foreground mb-4">Four e-pharma platforms, four different Haleon fits</p>
+        <Card>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-foreground hover:bg-foreground">
+                  <TableHead className="text-background font-semibold w-44">Metric</TableHead>
+                  {PLATFORMS.map((p) => (
+                    <TableHead key={p} className="text-background font-semibold text-center">
+                      {PLATFORM_LABEL[p]}{p === "zepto" ? "**" : ""}
+                    </TableHead>
+                  ))}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {PLATFORM_ROWS.map((row, i) => (
+                  <TableRow key={row.metric} className={i % 2 === 1 ? "bg-muted/30" : ""}>
+                    <TableCell className="font-semibold text-xs align-top py-3">{row.metric}</TableCell>
+                    {PLATFORMS.map((p) => {
+                      const val = row[p as keyof typeof row] as string;
+                      const lines = val.split("\n");
+                      return (
+                        <TableCell key={p} className="text-xs text-center align-top py-3">
+                          {lines.map((line, li) => (
+                            <span key={li} className="block leading-relaxed">{line}</span>
+                          ))}
+                        </TableCell>
+                      );
+                    })}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+        <p className="text-xs text-muted-foreground mt-2">
+          * PharmEasy revenue estimate. ** Zepto pharma figures are pilot-stage projections.
+        </p>
       </div>
     </div>
   );
