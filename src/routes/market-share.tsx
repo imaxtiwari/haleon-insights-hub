@@ -3,8 +3,9 @@ import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { LineChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis, CartesianGrid, Legend } from "recharts";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Info } from "lucide-react";
 import { PLATFORM_LABEL, latestPeriodWithData, type Platform } from "@/lib/mock-data";
 import { fetchCategoryMarketShareAll, type DbCategoryMsRow } from "@/lib/api/queries";
@@ -83,21 +84,31 @@ function MarketSharePage() {
   // KPI summary
   const totalGapCr = CATEGORIES.reduce((sum, c) => sum + (GAP_CR[c.id] ?? 0), 0);
 
-  // Trend chart: Zepto share over time per category (from historical Excel data)
-  const zeptoTrendPeriods = useMemo(
-    () => [...new Set(allRows.filter((r) => r.platform === "zepto").map((r) => r.period))].sort(),
-    [allRows],
+  // Trend chart platform selector — default to whichever platform has the most history
+  const [trendPlatform, setTrendPlatform] = useState<Platform>("zepto");
+
+  const trendPeriods = useMemo(
+    () => [...new Set(allRows.filter((r) => r.platform === trendPlatform).map((r) => r.period))].sort(),
+    [allRows, trendPlatform],
   );
-  const zeptoTrendData = useMemo(() => {
-    return zeptoTrendPeriods.map((per) => {
+  const trendData = useMemo(() => {
+    return trendPeriods.map((per) => {
       const row: Record<string, number | string> = { w: fmtPeriodShort(per) };
       CATEGORIES.forEach((cat) => {
-        const r = allRows.find((x) => x.platform === "zepto" && x.categoryId === cat.id && x.period === per);
+        const r = allRows.find((x) => x.platform === trendPlatform && x.categoryId === cat.id && x.period === per);
         if (r?.sharePct != null) row[cat.id] = +r.sharePct.toFixed(1);
       });
       return row;
     });
-  }, [allRows, zeptoTrendPeriods]);
+  }, [allRows, trendPeriods, trendPlatform]);
+
+  // Platforms that actually have trend data (more than 1 period)
+  const platformsWithTrendData = useMemo(
+    () => TRACKED_PLATFORMS.filter(
+      (p) => [...new Set(allRows.filter((r) => r.platform === p).map((r) => r.period))].length > 1,
+    ),
+    [allRows],
+  );
 
   return (
     <div>
@@ -252,43 +263,78 @@ function MarketSharePage() {
         </div>
       </div>
 
-      {/* Zepto trend chart — historical data from Excel */}
-      {zeptoTrendPeriods.length > 1 && (
+      {/* Market share trend chart — platform-switchable */}
+      {(platformsWithTrendData.length > 0 || trendPeriods.length > 1) && (
         <div className="mt-10">
-          <h2 className="text-base font-semibold mb-1">Zepto market share trend</h2>
-          <p className="text-xs text-muted-foreground mb-4">
-            Haleon share % on Zepto by category · source: Market Share report (Jan 2023 – Apr 2026)
-          </p>
-          <Card>
-            <CardContent className="h-72 pt-4">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={zeptoTrendData} margin={{ top: 4, right: 16, left: 0, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                  <XAxis dataKey="w" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} interval="preserveStartEnd" />
-                  <YAxis tick={{ fontSize: 10 }} axisLine={false} tickLine={false} width={36} tickFormatter={(v) => `${v}%`} />
-                  <Tooltip
-                    contentStyle={{ fontSize: 12, borderRadius: 6 }}
-                    formatter={(v, name) => [`${Number(v).toFixed(1)}%`, CATEGORIES.find((c) => c.id === name)?.label ?? name]}
-                  />
-                  <Legend
-                    wrapperStyle={{ fontSize: 11 }}
-                    formatter={(name) => CATEGORIES.find((c) => c.id === name)?.label ?? name}
-                  />
-                  {CATEGORIES.map((cat) => (
-                    <Line
-                      key={cat.id}
-                      type="monotone"
-                      dataKey={cat.id}
-                      stroke={CAT_COLORS[cat.id]}
-                      strokeWidth={2}
-                      dot={false}
-                      connectNulls
+          <div className="flex items-start justify-between gap-4 mb-1 flex-wrap">
+            <div>
+              <h2 className="text-base font-semibold">
+                {PLATFORM_LABEL[trendPlatform]} market share trend
+              </h2>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Haleon share % by category · source: Market Share report (Jan 2023 – Apr 2026)
+              </p>
+            </div>
+            <Tabs value={trendPlatform} onValueChange={(v) => setTrendPlatform(v as Platform)}>
+              <TabsList className="h-auto min-h-8 flex-wrap gap-1">
+                {TRACKED_PLATFORMS.map((p) => {
+                  const periods = [...new Set(allRows.filter((r) => r.platform === p).map((r) => r.period))];
+                  return (
+                    <TabsTrigger key={p} value={p} className="text-xs h-7">
+                      {PLATFORM_LABEL[p]}
+                      {periods.length <= 1 && (
+                        <span className="ml-1 text-muted-foreground/60 text-[10px]">(limited)</span>
+                      )}
+                    </TabsTrigger>
+                  );
+                })}
+              </TabsList>
+            </Tabs>
+          </div>
+
+          {trendPeriods.length > 1 ? (
+            <Card>
+              <CardContent className="h-72 pt-4">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={trendData} margin={{ top: 4, right: 16, left: 0, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                    <XAxis dataKey="w" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} interval="preserveStartEnd" />
+                    <YAxis tick={{ fontSize: 10 }} axisLine={false} tickLine={false} width={36} tickFormatter={(v) => `${v}%`} />
+                    <Tooltip
+                      contentStyle={{ fontSize: 12, borderRadius: 6 }}
+                      formatter={(v, name) => [`${Number(v).toFixed(1)}%`, CATEGORIES.find((c) => c.id === name)?.label ?? name]}
                     />
-                  ))}
-                </LineChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
+                    <Legend
+                      wrapperStyle={{ fontSize: 11 }}
+                      formatter={(name) => CATEGORIES.find((c) => c.id === name)?.label ?? name}
+                    />
+                    {CATEGORIES.map((cat) => (
+                      <Line
+                        key={cat.id}
+                        type="monotone"
+                        dataKey={cat.id}
+                        stroke={CAT_COLORS[cat.id]}
+                        strokeWidth={2}
+                        dot={false}
+                        connectNulls
+                      />
+                    ))}
+                  </LineChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-12 gap-2">
+                <p className="text-sm text-muted-foreground">
+                  Not enough historical data for {PLATFORM_LABEL[trendPlatform]} to show a trend.
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Only {trendPeriods.length === 1 ? "1 period" : "no periods"} found — upload more months to see the trend line.
+                </p>
+              </CardContent>
+            </Card>
+          )}
         </div>
       )}
     </div>
