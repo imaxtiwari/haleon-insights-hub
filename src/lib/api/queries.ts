@@ -381,6 +381,29 @@ export const fetchCategoryMarketShare = createServerFn({ method: "GET" })
     }));
   });
 
+// ── Category Market Share (all periods) ──────────────────────────────────────
+// Used by market-share page for client-side period fallback + trend charts
+export const fetchCategoryMarketShareAll = createServerFn({ method: "GET" }).handler(
+  async (): Promise<DbCategoryMsRow[]> => {
+    const { env } = await import("cloudflare:workers");
+    type Raw = { category_id: string; platform: string; period: string; share_pct: number | null; gap_cr: number | null };
+    const result = (await env.haleon_insights_db
+      .prepare(
+        `SELECT category_id, platform, period, share_pct, gap_cr
+         FROM category_market_share
+         ORDER BY period, category_id, platform`,
+      )
+      .all()) as D1Result<Raw>;
+    return result.results.map((r) => ({
+      categoryId: r.category_id,
+      platform:   r.platform as Platform,
+      period:     r.period,
+      sharePct:   r.share_pct,
+      gapCr:      r.gap_cr,
+    }));
+  },
+);
+
 // ── Helper: convert DbPriceRow → PriceRow (mock-data shape) ─────────────────
 export function toPriceRows(dbRows: DbPriceRow[]): PriceRow[] {
   return dbRows.map((r) =>
