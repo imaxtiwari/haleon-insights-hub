@@ -5,18 +5,20 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useMemo, useState } from "react";
-import { brands, PLATFORMS, PLATFORM_LABEL, visibilityScore, listingScore, priceCompetitivenessScore, marketShareScore, overallBrandHealth, type Platform, type PriceRow } from "@/lib/mock-data";
-import { fetchOfftakes, fetchListings, fetchVisibility, fetchPrices, fetchFairShares, toPriceRows } from "@/lib/api/queries";
+import { brands, PLATFORMS, PLATFORM_LABEL, visibilityScore, listingScore, priceCompetitivenessScore, marketShareScore, overallBrandHealth, latestPeriodWithData, type Platform, type PriceRow } from "@/lib/mock-data";
+import { fetchListings, fetchVisibility, fetchPrices, fetchFairShares, toPriceRows } from "@/lib/api/queries";
 import { usePeriod } from "@/lib/period-context";
 import { cn } from "@/lib/utils";
+import { Info } from "lucide-react";
 
 export const Route = createFileRoute("/brand-health")({
   loader: async () => {
-    const [offtakes, listings, visibility, dbPrices, fairShares] = await Promise.all([
-      fetchOfftakes(), fetchListings(), fetchVisibility(), fetchPrices(), fetchFairShares(),
+    // Intentionally exclude fetchOfftakes (17k rows) — market share falls back to mock
+    const [listings, visibility, dbPrices, fairShares] = await Promise.all([
+      fetchListings(), fetchVisibility(), fetchPrices(), fetchFairShares(),
     ]);
     const prices: PriceRow[] = toPriceRows(dbPrices);
-    return { offtakes, listings, visibility, prices, fairShares };
+    return { listings, visibility, prices, fairShares };
   },
   component: BrandHealthPage,
 });
@@ -28,14 +30,24 @@ function scoreClass(v: number) {
 }
 
 function BrandHealthPage() {
-  const { offtakes, listings, visibility, prices, fairShares } = Route.useLoaderData();
+  const { listings, visibility, prices, fairShares } = Route.useLoaderData();
   const fsMap = useMemo(
     () => new Map(fairShares.map((r) => [`${r.brandId}|${r.platform}`, r.targetPct])),
     [fairShares],
   );
-  const scoreData = useMemo(() => ({ offtakes, listings, visibility, prices, fairShares: fsMap }), [offtakes, listings, visibility, prices, fsMap]);
+  // Pass undefined for offtakes so marketShareScore falls back to mock data
+  const scoreData = useMemo(() => ({ offtakes: undefined, listings, visibility, prices, fairShares: fsMap }), [listings, visibility, prices, fsMap]);
   const { period } = usePeriod();
   const [platform, setPlatform] = useState<Platform | "all">("all");
+
+  // Derive effective period from each data source explicitly (same pattern as other pages)
+  const effectivePeriod = useMemo(() => {
+    if (listings.length > 0) return latestPeriodWithData(listings, period);
+    if (visibility.length > 0) return latestPeriodWithData(visibility, period);
+    return period;
+  }, [listings, visibility, period]);
+  const isSnapshot = effectivePeriod !== period;
+
   return (
     <div>
       <PageHeader
@@ -51,6 +63,12 @@ function BrandHealthPage() {
           </Tabs>
         }
       />
+      {isSnapshot && (
+        <div className="mb-4 flex items-center gap-2 text-xs bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 rounded-md px-3 py-2">
+          <Info className="size-3.5 shrink-0" />
+          No data for {period} — showing latest snapshot ({effectivePeriod})
+        </div>
+      )}
       <Card>
         <CardContent className="p-0">
           <Table>
@@ -66,11 +84,12 @@ function BrandHealthPage() {
             </TableHeader>
             <TableBody>
               {brands.map((b) => {
-                const v  = visibilityScore(b.id, platform, period, scoreData.visibility);
-                const l  = listingScore(b.id, platform, period, scoreData.listings);
-                const pr = priceCompetitivenessScore(b.id, platform, period, scoreData.prices);
-                const ms = marketShareScore(b.id, platform, period, scoreData.offtakes, scoreData.fairShares);
-                const o  = overallBrandHealth(b.id, platform, period, scoreData);
+                // Pass effectivePeriod directly — avoids relying on internal fallback
+                const v  = visibilityScore(b.id, platform, effectivePeriod, scoreData.visibility);
+                const l  = listingScore(b.id, platform, effectivePeriod, scoreData.listings);
+                const pr = priceCompetitivenessScore(b.id, platform, effectivePeriod, scoreData.prices);
+                const ms = marketShareScore(b.id, platform, effectivePeriod, scoreData.offtakes, scoreData.fairShares);
+                const o  = overallBrandHealth(b.id, platform, effectivePeriod, scoreData);
                 return (
                   <TableRow key={b.id} className="h-10">
                     <TableCell className="font-medium">{b.name}</TableCell>
