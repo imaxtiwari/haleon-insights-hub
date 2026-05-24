@@ -8,7 +8,7 @@
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
-    "deploy": "npm run build && wrangler deploy",
+    "deploy": "npm run build && bash -c '. $NVM_DIR/nvm.sh && nvm use && wrangler deploy'",
     "lint": "eslint .",
     "format": "prettier --write ."
   },
