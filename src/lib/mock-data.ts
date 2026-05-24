@@ -346,7 +346,9 @@ export const periods: string[] = (() => {
   }
   return arr;
 })();
-export const latestPeriod = periods[periods.length - 1];
+// Pinned to the latest month that has real uploaded data.
+// Update this when new monthly data is loaded.
+export const latestPeriod = "2026-04";
 
 export function prevPeriod(period: string): string | null {
   const i = periods.indexOf(period);
