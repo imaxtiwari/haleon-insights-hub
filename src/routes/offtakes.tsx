@@ -5,13 +5,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { useState, useMemo } from "react";
-import { brands, categories, skus, PLATFORMS, PLATFORM_LABEL, periods, prevPeriod, deltaPct, type Platform } from "@/lib/mock-data";
+import { brands, categories, skus, PLATFORMS, PLATFORM_LABEL, prevPeriod, deltaPct, type Platform } from "@/lib/mock-data";
 import { fetchOfftakes, fetchOfftakesDetail, type DbOfftakeDetailRow } from "@/lib/api/queries";
 import { usePeriod } from "@/lib/period-context";
-import { formatINR, formatNum, formatDelta, fmtPeriod, fmtPeriodShort } from "@/lib/format";
-import { ArrowDownRight, ArrowUpRight, UploadCloud, PackageOpen } from "lucide-react";
+import { formatINR, formatNum, formatDelta, fmtPeriod } from "@/lib/format";
+import { UploadCloud, PackageOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { BarChart, Bar, LineChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis, Legend } from "recharts";
+import { BarChart, Bar, ResponsiveContainer, Tooltip, XAxis, YAxis, Legend } from "recharts";
 
 export const Route = createFileRoute("/offtakes")({
   // Load all-period data once for sparklines; period-filtered detail is fetched client-side
@@ -75,7 +75,7 @@ function OfftakesPage() {
 
   // ── KPIs ──────────────────────────────────────────────────────────────────
   const totalUnits = filteredDetailRows.reduce((a, r) => a + r.units, 0);
-  const totalGMV   = filteredDetailRows.reduce((a, r) => a + r.gmv, 0);
+  const totalGMV   = filteredDetailRows.reduce((a, r) => a + r.gmv, 0); // gmv = Offtake_MRP
 
   // For MoM delta: use all-period data (sparkline dataset)
   const filteredSkuIds = useMemo(
@@ -169,9 +169,9 @@ function OfftakesPage() {
 
       {/* KPI tiles */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <KpiTile label="Total Units"   value={formatNum(dispUnits)} />
-        <KpiTile label="Total GMV"     value={formatINR(dispGMV)} />
-        <KpiTile label="MoM Δ GMV"     value={formatDelta(dispMoM)}  delta={dispMoM} />
+        <KpiTile label="Total Quantity"      value={formatNum(dispUnits)} />
+        <KpiTile label="Total Offtake MRP"   value={formatINR(dispGMV)} />
+        <KpiTile label="MoM Δ Offtake MRP"   value={formatDelta(dispMoM)}  delta={dispMoM} />
         {usingRealData
           ? <KpiTile label="Top Brand"    value={topBrand ?? "—"} />
           : <KpiTile label="Top Platform" value={topPlatform ?? "—"} />}
@@ -183,7 +183,7 @@ function OfftakesPage() {
           {/* Data table */}
           <Card>
             <CardHeader className="pb-2 flex-row items-center justify-between">
-              <CardTitle className="text-base">SKU × Platform · {fmtPeriod(period)}</CardTitle>
+              <CardTitle className="text-base">Product × Platform · {fmtPeriod(period)}</CardTitle>
               <div className="flex gap-2 items-center text-xs text-muted-foreground">
                 {topBrand && <span>Top brand: <span className="font-semibold text-foreground">{topBrand}</span></span>}
                 {topPlatform && <span>Top platform: <span className="font-semibold text-foreground">{topPlatform}</span></span>}
@@ -196,67 +196,31 @@ function OfftakesPage() {
                     <TableHead>Product</TableHead>
                     <TableHead>Brand</TableHead>
                     <TableHead>Platform</TableHead>
-                    <TableHead className="text-right">Units</TableHead>
-                    <TableHead className="text-right">GMV</TableHead>
-                    <TableHead className="text-right">MRP</TableHead>
-                    <TableHead className="w-28">Trend</TableHead>
+                    <TableHead className="text-right">Quantity</TableHead>
+                    <TableHead className="text-right">Offtake MRP</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredDetailRows.map((r) => {
-                    const spark = periods.slice(-4).map((per) => ({
-                      w: fmtPeriodShort(per),
-                      units: allPeriodOfftakes
-                        .filter((o) => o.skuId === r.skuId && o.platform === r.platform && mp(o.period, o.weekEnding, per))
-                        .reduce((a, o) => a + o.units, 0),
-                    }));
-                    // MoM for this row
-                    const prevUnits = prev
-                      ? allPeriodOfftakes
-                          .filter((o) => o.skuId === r.skuId && o.platform === r.platform && mp(o.period, o.weekEnding, prev))
-                          .reduce((a, o) => a + o.units, 0)
-                      : 0;
-                    const d = r.units && prevUnits ? deltaPct(r.units, prevUnits) : 0;
-
-                    return (
-                      <TableRow key={`${r.skuId}-${r.platform}`} className="h-9">
-                        <TableCell className="font-medium text-xs max-w-[200px] truncate">{r.productName}</TableCell>
-                        <TableCell className="text-xs text-muted-foreground">
-                          {brands.find((b) => b.id === r.brandId)?.name ?? r.brandId}
-                        </TableCell>
-                        <TableCell className="text-xs text-muted-foreground">{PLATFORM_LABEL[r.platform]}</TableCell>
-                        <TableCell className="text-right tabular-nums">{formatNum(r.units)}</TableCell>
-                        <TableCell className="text-right tabular-nums">{formatINR(r.gmv)}</TableCell>
-                        <TableCell className="text-right tabular-nums text-muted-foreground text-xs">
-                          {formatINR(r.mrp)}
-                        </TableCell>
-                        <TableCell className="w-28 py-0">
-                          {d !== 0 && (
-                            <span className={cn("text-xs flex items-center gap-0.5 mb-0.5", d >= 0 ? "text-success" : "text-destructive")}>
-                              {d >= 0 ? <ArrowUpRight className="size-3" /> : <ArrowDownRight className="size-3" />}
-                              {formatDelta(d)}
-                            </span>
-                          )}
-                          <div className="h-6">
-                            <ResponsiveContainer width="100%" height="100%">
-                              <LineChart data={spark}>
-                                <Line type="monotone" dataKey="units" stroke="var(--primary)" strokeWidth={1.5} dot={false} />
-                              </LineChart>
-                            </ResponsiveContainer>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
+                  {filteredDetailRows.map((r) => (
+                    <TableRow key={`${r.skuId}-${r.platform}`} className="h-9">
+                      <TableCell className="font-medium text-xs max-w-[220px] truncate">{r.productName}</TableCell>
+                      <TableCell className="text-xs text-muted-foreground">
+                        {brands.find((b) => b.id === r.brandId)?.name ?? r.brandId}
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground">{PLATFORM_LABEL[r.platform]}</TableCell>
+                      <TableCell className="text-right tabular-nums">{formatNum(r.units)}</TableCell>
+                      <TableCell className="text-right tabular-nums">{formatINR(r.gmv)}</TableCell>
+                    </TableRow>
+                  ))}
                 </TableBody>
               </Table>
             </CardContent>
           </Card>
 
-          {/* Brand GMV bar chart */}
+          {/* Brand Offtake MRP bar chart */}
           <Card className="mt-6">
             <CardHeader>
-              <CardTitle className="text-base">Brand GMV by platform · {fmtPeriod(period)}</CardTitle>
+              <CardTitle className="text-base">Brand Offtake MRP by platform · {fmtPeriod(period)}</CardTitle>
             </CardHeader>
             <CardContent className="h-72">
               <ResponsiveContainer width="100%" height="100%">
@@ -344,46 +308,23 @@ function MockFallbackTable({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>SKU</TableHead>
+                <TableHead>Product</TableHead>
                 <TableHead>Platform</TableHead>
-                <TableHead className="text-right">Units</TableHead>
-                <TableHead className="text-right">GMV</TableHead>
-                <TableHead className="text-right">MoM Δ</TableHead>
-                <TableHead className="w-32">4-month trend</TableHead>
+                <TableHead className="text-right">Quantity</TableHead>
+                <TableHead className="text-right">Offtake MRP</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredSkus.flatMap((s) => plats.map((p) => {
-                const rRows  = allPeriodOfftakes.filter((o) => o.skuId === s.id && o.platform === p && mp(o.period, o.weekEnding, period));
-                const prRows = prev ? allPeriodOfftakes.filter((o) => o.skuId === s.id && o.platform === p && mp(o.period, o.weekEnding, prev)) : [];
-                const rUnits  = rRows.reduce((a, r) => a + r.units, 0);
-                const rGMV    = rRows.reduce((a, r) => a + r.gmv, 0);
-                const prUnits = prRows.reduce((a, r) => a + r.units, 0);
-                const d = rUnits && prUnits ? deltaPct(rUnits, prUnits) : 0;
-                const spark = periods.slice(-4).map((per) => ({
-                  w: fmtPeriodShort(per),
-                  units: allPeriodOfftakes
-                    .filter((o) => o.skuId === s.id && o.platform === p && mp(o.period, o.weekEnding, per))
-                    .reduce((a, r) => a + r.units, 0),
-                }));
+                const rRows = allPeriodOfftakes.filter((o) => o.skuId === s.id && o.platform === p && mp(o.period, o.weekEnding, period));
+                const rUnits = rRows.reduce((a, r) => a + r.units, 0);
+                const rGMV   = rRows.reduce((a, r) => a + r.gmv, 0);
                 return (
                   <TableRow key={`${s.id}-${p}`} className="h-9">
-                    <TableCell className="font-medium text-xs">{s.name}</TableCell>
+                    <TableCell className="font-medium text-xs max-w-[220px] truncate">{s.name}</TableCell>
                     <TableCell className="text-xs text-muted-foreground">{PLATFORM_LABEL[p]}</TableCell>
                     <TableCell className="text-right tabular-nums">{formatNum(rUnits)}</TableCell>
                     <TableCell className="text-right tabular-nums">{formatINR(rGMV)}</TableCell>
-                    <TableCell className={cn("text-right tabular-nums text-xs flex items-center justify-end gap-0.5 h-9", d >= 0 ? "text-success" : "text-destructive")}>
-                      {d >= 0 ? <ArrowUpRight className="size-3" /> : <ArrowDownRight className="size-3" />}{formatDelta(d)}
-                    </TableCell>
-                    <TableCell className="w-32 py-0">
-                      <div className="h-8">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <LineChart data={spark}>
-                            <Line type="monotone" dataKey="units" stroke="var(--primary)" strokeWidth={1.5} dot={false} />
-                          </LineChart>
-                        </ResponsiveContainer>
-                      </div>
-                    </TableCell>
                   </TableRow>
                 );
               }))}
@@ -393,7 +334,7 @@ function MockFallbackTable({
       </Card>
 
       <Card className="mt-6">
-        <CardHeader><CardTitle className="text-base">Brand GMV by platform · {fmtPeriod(period)}</CardTitle></CardHeader>
+        <CardHeader><CardTitle className="text-base">Brand Offtake MRP by platform · {fmtPeriod(period)}</CardTitle></CardHeader>
         <CardContent className="h-72">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={brands.map((b) => {
