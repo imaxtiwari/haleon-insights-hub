@@ -7,12 +7,11 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useState } from "react";
-import { skus, competitorSkus, brands, categories, PLATFORMS, PLATFORM_LABEL, periods, prevPeriod, deltaPct, latestPeriodWithData, type Platform } from "@/lib/mock-data";
+import { skus, competitorSkus, brands, categories, PLATFORMS, PLATFORM_LABEL, periods, prevPeriod, deltaPct, type Platform } from "@/lib/mock-data";
 import { fetchPrices, type DbPriceRow } from "@/lib/api/queries";
 import { usePeriod } from "@/lib/period-context";
 import { formatDelta, fmtPeriodShort } from "@/lib/format";
-import { ArrowDown, ArrowUp, Info } from "lucide-react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { ArrowDown, ArrowUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { LineChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
@@ -33,8 +32,6 @@ function PricingPage() {
   const [brandId, setBrandId] = useState("all");
   const [categoryId, setCategoryId] = useState("all");
 
-  const effectivePeriod   = latestPeriodWithData(priceRows, period);
-  const isSnapshot        = effectivePeriod !== period;
   const activeBrand       = brands.find((b) => b.id === brandId);
   const activeCategoryId  = categoryId;
   const activeCategory    = categories.find((c) => c.id === activeCategoryId);
@@ -75,19 +72,11 @@ function PricingPage() {
           <TabsTrigger value="haleon">Haleon SKUs</TabsTrigger>
           <TabsTrigger value="comp">Competitor SKUs</TabsTrigger>
         </TabsList>
-        {isSnapshot && (
-          <Alert className="mt-3 border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950/30">
-            <Info className="size-4 text-blue-600 dark:text-blue-400" />
-            <AlertDescription className="text-xs text-blue-700 dark:text-blue-300">
-              No pricing data for the selected period — showing latest snapshot: <span className="font-semibold">{effectivePeriod}</span>
-            </AlertDescription>
-          </Alert>
-        )}
         <TabsContent value="haleon">
-          <PriceTable priceRows={priceRows} kind="sku"  period={effectivePeriod} brandId={brandId} categoryId={activeCategoryId} brandLabel={brandLabel} categoryLabel={categoryLabel} />
+          <PriceTable priceRows={priceRows} kind="sku"  period={period} brandId={brandId} categoryId={activeCategoryId} brandLabel={brandLabel} categoryLabel={categoryLabel} />
         </TabsContent>
         <TabsContent value="comp">
-          <PriceTable priceRows={priceRows} kind="comp" period={effectivePeriod} brandId={brandId} categoryId={activeCategoryId} brandLabel={brandLabel} categoryLabel={categoryLabel} />
+          <PriceTable priceRows={priceRows} kind="comp" period={period} brandId={brandId} categoryId={activeCategoryId} brandLabel={brandLabel} categoryLabel={categoryLabel} />
         </TabsContent>
       </Tabs>
     </div>

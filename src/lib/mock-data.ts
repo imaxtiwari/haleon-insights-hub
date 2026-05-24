@@ -346,9 +346,7 @@ export const periods: string[] = (() => {
   }
   return arr;
 })();
-// Pinned to the latest month that has real uploaded data.
-// Update this when new monthly data is loaded.
-export const latestPeriod = "2026-04";
+export const latestPeriod = periods[periods.length - 1];
 
 export function prevPeriod(period: string): string | null {
   const i = periods.indexOf(period);
@@ -557,42 +555,6 @@ export function setFairShare(brandId: string, platform: Platform, value: number)
   fairShareMap.set(`${brandId}|${platform}`, Math.max(0, Math.min(100, value)));
 }
 
-// ==== Category-level market share actuals (from Haleon data, Apr 2026) ====
-// null = Amazon Pharmacy data not yet available
-export const CATEGORY_MARKET_SHARE: Record<string, Partial<Record<Platform, number | null>>> = {
-  oral:    { tata_1mg: 5,    pharmeasy: 24.5,  zepto: 60.3,  amazon_pharmacy: null },
-  mvm:     { tata_1mg: 6,    pharmeasy: 2.76,  zepto: 13.4,  amazon_pharmacy: null },
-  pain:    { tata_1mg: 3,    pharmeasy: 3,     zepto: 7.4,   amazon_pharmacy: null },
-  cold:    { tata_1mg: 8,    pharmeasy: 47.6,  zepto: 9,     amazon_pharmacy: null },
-  antacid: { tata_1mg: 12,   pharmeasy: 4.73,  zepto: 14.9,  amazon_pharmacy: null },
-};
-
-// Fair share target = the highest actual share seen across platforms (the best-in-class benchmark)
-export const CATEGORY_FAIR_SHARE: Record<string, number> = {
-  oral:    60.3,
-  mvm:     13.4,
-  pain:    7.4,
-  cold:    47.6,
-  antacid: 14.9,
-};
-
-// Gap in Rs Cr — pre-computed; "Track" = data insufficient to compute
-export const CATEGORY_GAP_DISPLAY: Record<string, string> = {
-  oral:    "Rs 5.7 Cr",
-  mvm:     "Rs 1.0 Cr",
-  pain:    "Track",
-  cold:    "Rs 8.9 Cr",
-  antacid: "Rs 0.5 Cr",
-};
-
-export const CATEGORY_DISPLAY_NAME: Record<string, string> = {
-  oral:    "Oral Care (Paste, Brush, MW, Paro, Pron)",
-  mvm:     "VMS (Centrum + Ostocalcium)",
-  pain:    "Pain Relief (Iodex)",
-  cold:    "Respiratory (Otrivin)",
-  antacid: "Digestive (Eno)",
-};
-
 // ==== Aggregation helpers ====
 export function skuById(id: string) { return skus.find((s) => s.id === id)!; }
 export function brandById(id: string) { return brands.find((b) => b.id === id)!; }
@@ -642,33 +604,17 @@ export function prevWeek(week: string): string | null {
   return weeks[i - 1];
 }
 
-// ==== Snapshot period fallback ====
-// Visibility, listings, and prices are point-in-time snapshots.
-// If no data exists for the selected period, fall back to the latest
-// period that has any data so pages always show something.
-
-export function latestPeriodWithData(
-  rows: { period?: string; weekEnding: string }[],
-  selectedPeriod: string,
-): string {
-  if (!rows.length) return selectedPeriod;
-  const available = [...new Set(rows.map((r) => r.period ?? r.weekEnding.slice(0, 7)))].sort();
-  if (available.includes(selectedPeriod)) return selectedPeriod;
-  return available.at(-1) ?? selectedPeriod;
-}
-
 // ==== Score helpers for /brand-health ====
 // Each accepts an optional data array; falls back to mock data when omitted.
 
 export function visibilityScore(brandId: string, platform: Platform | "all", period: string, visData?: VisibilityRow[]): number {
   const data = visData ?? visibility;
-  const effectivePeriod = latestPeriodWithData(data, period);
   const kws = brandKeywords[brandId] ?? [];
   const plats = platform === "all" ? PLATFORMS : [platform];
   let total = 0, n = 0;
   kws.forEach((kw) => {
     plats.forEach((p) => {
-      const row = data.find((v) => v.brandId === brandId && v.keyword === kw && v.platform === p && mp(v.period, v.weekEnding, effectivePeriod));
+      const row = data.find((v) => v.brandId === brandId && v.keyword === kw && v.platform === p && mp(v.period, v.weekEnding, period));
       if (!row) return;
       n++;
       if (row.rank == null) total += 0;
@@ -682,13 +628,12 @@ export function visibilityScore(brandId: string, platform: Platform | "all", per
 }
 export function listingScore(brandId: string, platform: Platform | "all", period: string, listData?: ListingRow[]): number {
   const data = listData ?? listings;
-  const effectivePeriod = latestPeriodWithData(data, period);
   const sIds = skus.filter((s) => s.brandId === brandId).map((s) => s.id);
   const plats = platform === "all" ? PLATFORMS : [platform];
   let listed = 0, total = 0;
   sIds.forEach((id) => {
     plats.forEach((p) => {
-      const row = data.find((l) => l.skuId === id && l.platform === p && mp(l.period, l.weekEnding, effectivePeriod));
+      const row = data.find((l) => l.skuId === id && l.platform === p && mp(l.period, l.weekEnding, period));
       if (!row) return;
       total++;
       if (row.status === "listed") listed++;
@@ -698,13 +643,12 @@ export function listingScore(brandId: string, platform: Platform | "all", period
 }
 export function priceCompetitivenessScore(brandId: string, platform: Platform | "all", period: string, priceData?: PriceRow[]): number {
   const data = priceData ?? prices;
-  const effectivePeriod = latestPeriodWithData(data, period);
   const brandSkus = skus.filter((s) => s.brandId === brandId);
   const plats = platform === "all" ? PLATFORMS : [platform];
   let total = 0, n = 0;
   brandSkus.forEach((s) => {
     plats.forEach((p) => {
-      const pr = data.find((x) => x.skuId === s.id && x.platform === p && mp(x.period, x.weekEnding, effectivePeriod));
+      const pr = data.find((x) => x.skuId === s.id && x.platform === p && mp(x.period, x.weekEnding, period));
       if (!pr) return;
       const disc = 1 - pr.price / s.mrp;
       n++;

@@ -6,11 +6,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { PLATFORMS, PLATFORM_LABEL, latestWeek, type Platform } from "@/lib/mock-data";
-import { processUpload, processOfftakesUpload, processMetricsUpload, parseMetricsCsv, type MetricsParsedRow } from "@/lib/api/upload";
+import { processUpload, processOfftakesUpload } from "@/lib/api/upload";
 import { fetchUploads } from "@/lib/api/queries";
 import { fmtPeriod } from "@/lib/format";
-import { UploadCloud, FileCheck2, ArrowRight, Loader2, ShoppingCart, BarChart2 } from "lucide-react";
-import { Textarea } from "@/components/ui/textarea";
+import { UploadCloud, FileCheck2, ArrowRight, Loader2, ShoppingCart } from "lucide-react";
 import { useState, useRef } from "react";
 import { toast } from "sonner";
 import { useRouter } from "@tanstack/react-router";
@@ -45,13 +44,6 @@ function UploadPage() {
         <h2 className="text-sm font-semibold mb-3 text-muted-foreground uppercase tracking-wide">Invoice-line offtakes</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           <OfftakesUploadCard />
-        </div>
-      </div>
-
-      <div className="mt-6">
-        <h2 className="text-sm font-semibold mb-3 text-muted-foreground uppercase tracking-wide">Platform metrics — MAU &amp; AOV</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          <MetricsUploadCard />
         </div>
       </div>
 
@@ -216,181 +208,6 @@ function OfftakesUploadCard() {
               {stage === "submitting"
                 ? <><Loader2 className="size-4 mr-2 animate-spin" />Uploading…</>
                 : "Commit offtakes"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </Card>
-  );
-}
-
-// ── MAU / AOV upload card ──────────────────────────────────────────────────────
-
-function MetricsUploadCard() {
-  const [stage,    setStage]    = useState<"idle" | "preview" | "submitting">("idle");
-  const [csvText,  setCsvText]  = useState("");
-  const [rows,     setRows]     = useState<MetricsParsedRow[]>([]);
-  const [parseErr, setParseErr] = useState<string[]>([]);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const router   = useRouter();
-
-  function loadText(text: string) {
-    setCsvText(text);
-    const { rows: parsed, errors } = parseMetricsCsv(text);
-    setRows(parsed);
-    setParseErr(errors);
-    if (parsed.length > 0) setStage("preview");
-    else setParseErr(errors.length ? errors : ["No valid rows found — check your CSV format"]);
-  }
-
-  function handleFile(f: File) {
-    f.text().then(loadText).catch(() => setParseErr(["Could not read file"]));
-  }
-
-  async function handleCommit() {
-    setStage("submitting");
-    try {
-      const result = await processMetricsUpload({ data: { csvText } });
-      toast.success("Metrics committed", {
-        description: `${result.upserted} rows upserted · ${result.skipped} skipped`,
-        icon: <FileCheck2 className="size-4" />,
-      });
-      await router.invalidate();
-    } catch (e) {
-      toast.error("Upload failed", { description: e instanceof Error ? e.message : "Unknown error" });
-    }
-    setStage("idle");
-    setCsvText("");
-    setRows([]);
-    setParseErr([]);
-  }
-
-  const PLATFORM_LABEL_SHORT: Record<string, string> = {
-    tata_1mg: "Tata 1mg", pharmeasy: "PharmEasy",
-    zepto: "Zepto", amazon_pharmacy: "Amazon Pharmacy",
-  };
-
-  return (
-    <Card className="overflow-hidden">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-sm flex items-center gap-2">
-          <BarChart2 className="size-4 text-muted-foreground" />
-          MAU &amp; AOV — CSV paste or upload
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        <p className="text-xs text-muted-foreground">
-          Required columns:{" "}
-          <span className="font-mono">platform, period (YYYY-MM), mau, aov</span>
-          <br />
-          Updates <strong>only</strong> MAU + AOV — GMV and Reach stay unchanged.
-        </p>
-
-        {/* Paste textarea */}
-        <Textarea
-          placeholder={"platform,period,mau,aov\ntata_1mg,2026-04,7200000,1200\npharmeasy,2026-04,5100000,2500"}
-          className="font-mono text-xs h-28 resize-none"
-          value={csvText}
-          onChange={(e) => {
-            setCsvText(e.target.value);
-            setRows([]);
-            setParseErr([]);
-          }}
-        />
-
-        {/* File drop zone */}
-        <div
-          onClick={() => inputRef.current?.click()}
-          onDragOver={(e) => e.preventDefault()}
-          onDrop={(e) => {
-            e.preventDefault();
-            const f = e.dataTransfer.files[0];
-            if (f) handleFile(f);
-          }}
-          className="border-dashed border rounded-md p-3 text-center cursor-pointer hover:border-primary/50 hover:bg-accent/20 transition-colors"
-        >
-          <UploadCloud className="size-5 mx-auto text-muted-foreground" />
-          <p className="text-xs text-muted-foreground mt-1">or drop a .csv file here</p>
-        </div>
-        <input
-          ref={inputRef}
-          type="file"
-          accept=".csv,.txt"
-          className="hidden"
-          onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
-        />
-
-        {parseErr.length > 0 && (
-          <ul className="text-xs text-destructive space-y-0.5">
-            {parseErr.map((e, i) => <li key={i}>{e}</li>)}
-          </ul>
-        )}
-
-        <div className="flex justify-end">
-          <Button
-            size="sm"
-            disabled={csvText.trim().length < 10}
-            onClick={() => {
-              const { rows: parsed, errors } = parseMetricsCsv(csvText);
-              setRows(parsed);
-              setParseErr(errors);
-              if (parsed.length > 0) setStage("preview");
-            }}
-          >
-            Preview
-          </Button>
-        </div>
-      </CardContent>
-
-      {/* Preview dialog */}
-      <Dialog open={stage === "preview" || stage === "submitting"} onOpenChange={(o) => !o && setStage("idle")}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Preview — {rows.length} rows</DialogTitle>
-          </DialogHeader>
-
-          {parseErr.length > 0 && (
-            <div className="text-xs text-amber-600 dark:text-amber-400 space-y-0.5 mb-1">
-              {parseErr.map((e, i) => <p key={i}>⚠ {e}</p>)}
-            </div>
-          )}
-
-          <div className="overflow-x-auto max-h-64 overflow-y-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Platform</TableHead>
-                  <TableHead>Period</TableHead>
-                  <TableHead className="text-right">MAU</TableHead>
-                  <TableHead className="text-right">AOV (Rs)</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {rows.map((r, i) => (
-                  <TableRow key={i} className="h-9">
-                    <TableCell className="text-sm">{PLATFORM_LABEL_SHORT[r.platform] ?? r.platform}</TableCell>
-                    <TableCell className="text-sm font-mono">{r.period}</TableCell>
-                    <TableCell className="text-right tabular-nums text-sm">{r.mau.toLocaleString("en-IN")}</TableCell>
-                    <TableCell className="text-right tabular-nums text-sm">₹{r.aov.toLocaleString("en-IN")}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-
-          <p className="text-xs text-muted-foreground">
-            This will upsert MAU + AOV for the rows above into <span className="font-mono">platform_metrics</span>.
-            GMV and Reach will not be touched.
-          </p>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setStage("idle")} disabled={stage === "submitting"}>
-              Cancel
-            </Button>
-            <Button onClick={handleCommit} disabled={stage === "submitting"}>
-              {stage === "submitting"
-                ? <><Loader2 className="size-4 mr-2 animate-spin" />Saving…</>
-                : `Commit ${rows.length} rows`}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -4,11 +4,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useState } from "react";
-import { brands, skus, PLATFORMS, PLATFORM_LABEL, prevPeriod, latestPeriodWithData, type Platform, type ListingRow } from "@/lib/mock-data";
+import { brands, skus, PLATFORMS, PLATFORM_LABEL, prevPeriod, type Platform, type ListingRow } from "@/lib/mock-data";
 import { fetchListings } from "@/lib/api/queries";
 import { usePeriod } from "@/lib/period-context";
-import { ChevronDown, ChevronRight, Info } from "lucide-react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { ChevronDown, ChevronRight } from "lucide-react";
 
 export const Route = createFileRoute("/listings")({
   loader: () => fetchListings(),
@@ -19,8 +18,8 @@ function mp(rowPeriod: string | undefined, weekEnding: string, period: string) {
   return (rowPeriod ?? weekEnding.slice(0, 7)) === period;
 }
 
-function platformTotals(platform: Platform, period: string, allListings: ListingRow[], effectivePeriod: string) {
-  const rows    = allListings.filter((l) => l.platform === platform && mp(l.period, l.weekEnding, effectivePeriod));
+function platformTotals(platform: Platform, period: string, allListings: ListingRow[]) {
+  const rows    = allListings.filter((l) => l.platform === platform && mp(l.period, l.weekEnding, period));
   const total   = rows.length;
   const listed  = rows.filter((r) => r.status === "listed").length;
   const unlisted = rows.filter((r) => r.status === "unlisted").length;
@@ -31,25 +30,15 @@ function platformTotals(platform: Platform, period: string, allListings: Listing
 function ListingsPage() {
   const listings = Route.useLoaderData();
   const { period } = usePeriod();
-  const effectivePeriod = latestPeriodWithData(listings, period);
-  const isSnapshot = effectivePeriod !== period;
-  const prev = prevPeriod(effectivePeriod);
+  const prev = prevPeriod(period);
   const [expanded, setExpanded] = useState<string | null>(null);
 
   return (
     <div>
       <PageHeader title="Listing health" />
-      {isSnapshot && (
-        <Alert className="mb-4 border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950/30">
-          <Info className="size-4 text-blue-600 dark:text-blue-400" />
-          <AlertDescription className="text-xs text-blue-700 dark:text-blue-300">
-            No listing data for the selected period — showing latest snapshot: <span className="font-semibold">{effectivePeriod}</span>
-          </AlertDescription>
-        </Alert>
-      )}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
         {PLATFORMS.map((p) => {
-          const t = platformTotals(p, period, listings, effectivePeriod);
+          const t = platformTotals(p, period, listings);
           return (
             <Card key={p}>
               <CardHeader className="pb-2"><CardTitle className="text-sm">{PLATFORM_LABEL[p]}</CardTitle></CardHeader>
@@ -83,7 +72,7 @@ function ListingsPage() {
             <TableBody>
               {brands.map((b) => {
                 const brandSkuIds = skus.filter((s) => s.brandId === b.id).map((s) => s.id);
-                const rows     = listings.filter((l) => brandSkuIds.includes(l.skuId) && mp(l.period, l.weekEnding, effectivePeriod));
+                const rows     = listings.filter((l) => brandSkuIds.includes(l.skuId) && mp(l.period, l.weekEnding, period));
                 const listed   = rows.filter((r) => r.status === "listed").length;
                 const pct      = rows.length ? (listed / rows.length) * 100 : 0;
                 const prevRows = prev ? listings.filter((l) => brandSkuIds.includes(l.skuId) && mp(l.period, l.weekEnding, prev)) : [] as ListingRow[];

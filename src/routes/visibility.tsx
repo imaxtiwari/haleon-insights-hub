@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useState } from "react";
-import { brands, brandKeywords, PLATFORMS, PLATFORM_LABEL, periods, prevPeriod, latestPeriodWithData } from "@/lib/mock-data";
+import { brands, brandKeywords, PLATFORMS, PLATFORM_LABEL, periods, prevPeriod } from "@/lib/mock-data";
 import { fetchVisibility } from "@/lib/api/queries";
 import { usePeriod } from "@/lib/period-context";
 import { cn } from "@/lib/utils";
@@ -35,15 +35,13 @@ function VisibilityPage() {
   const [brandId, setBrandId] = useState(brands[0].id);
   const [expanded, setExpanded] = useState<string | null>(null);
 
-  const effectivePeriod = latestPeriodWithData(visibility, period);
-  const isSnapshot = effectivePeriod !== period;
   const kws  = brandKeywords[brandId];
-  const prev = prevPeriod(effectivePeriod);
+  const prev = prevPeriod(period);
 
   const droppedOutOfTop10: string[] = [];
   kws.forEach((kw) => {
     PLATFORMS.forEach((p) => {
-      const curr = visibility.find((v) => v.brandId === brandId && v.keyword === kw && v.platform === p && mp(v.period, v.weekEnding, effectivePeriod));
+      const curr = visibility.find((v) => v.brandId === brandId && v.keyword === kw && v.platform === p && mp(v.period, v.weekEnding, period));
       const pr   = prev && visibility.find((v) => v.brandId === brandId && v.keyword === kw && v.platform === p && mp(v.period, v.weekEnding, prev));
       if (curr && pr && pr.rank != null && pr.rank <= 10 && (curr.rank == null || curr.rank > 10)) {
         droppedOutOfTop10.push(`${kw} · ${PLATFORM_LABEL[p]}`);
@@ -62,14 +60,6 @@ function VisibilityPage() {
           </Select>
         }
       />
-      {isSnapshot && (
-        <Alert className="mb-4 border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950/30">
-          <AlertTriangle className="size-4 text-blue-600 dark:text-blue-400" />
-          <AlertDescription className="text-xs text-blue-700 dark:text-blue-300">
-            No visibility data for the selected period — showing latest snapshot: <span className="font-semibold">{effectivePeriod}</span>
-          </AlertDescription>
-        </Alert>
-      )}
       {droppedOutOfTop10.length > 0 && (
         <Alert className="mb-4 border-warning/40 bg-warning/10">
           <AlertTriangle className="size-4 text-warning-foreground" />
@@ -97,7 +87,7 @@ function VisibilityPage() {
                       {kw}
                     </TableCell>
                     {PLATFORMS.map((p) => {
-                      const row = visibility.find((v) => v.brandId === brandId && v.keyword === kw && v.platform === p && mp(v.period, v.weekEnding, effectivePeriod));
+                      const row = visibility.find((v) => v.brandId === brandId && v.keyword === kw && v.platform === p && mp(v.period, v.weekEnding, period));
                       return (
                         <TableCell key={p} className="text-center">
                           <span className={cn("inline-block min-w-10 rounded-md py-0.5 text-xs font-semibold tabular-nums", rankClass(row?.rank ?? null))}>
